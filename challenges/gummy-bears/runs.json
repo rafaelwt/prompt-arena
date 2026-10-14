@@ -48,6 +48,22 @@
     "cost_usd": 0.05
   },
   {
+    "slug": "gpt-6.1-sol",
+    "model": "GPT-6.1 Sol",
+    "provider": "OpenAI Codex",
+    "harness": "pi 1.2.0",
+    "effort": "medium",
+    "duration": "5m 13s",
+    "tokens_in": 41110,
+    "tokens_out": 9083,
+    "cost_usd": 0.2,
+    "turns": 19,
+    "nudges": 1,
+    "entry": "index.html",
+    "status": "done",
+    "notes": "Volume preservation and collisions are approximate; facial details can detach visually during deformation; 60fps unverified; pouring caps the scene at 13 bears."
+  },
+  {
     "slug": "glm-5-3-flash",
     "model": "GLM 5.3 Flash",
     "provider": "OpenCode Go",

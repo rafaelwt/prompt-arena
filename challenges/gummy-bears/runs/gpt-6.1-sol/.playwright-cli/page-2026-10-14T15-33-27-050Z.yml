@@ -1,0 +1,45 @@
+- generic [active] [ref=f2e1]:
+  - banner:
+    - generic: SOFT OBJECTS
+    - generic: AN INTERACTIVE STUDY / Nº 001
+  - generic:
+    - generic: Small joys. Big stretch.
+    - heading "Gummy Bears." [level=1]:
+      - generic: Gummy
+      - generic: Bears.
+    - paragraph: A handful of happiness.Go on, play with your food.
+    - generic: Grab. Stretch. Let go.
+  - complementary [ref=f2e3]:
+    - generic [ref=f2e4]: THE CANDY COUNTER
+    - generic [ref=f2e7]:
+      - text: Pick a flavor
+      - generic [ref=f2e8]: Cherry
+    - generic [ref=f2e9]:
+      - button "Cherry" [ref=f2e10] [cursor=pointer]
+      - button "Orange" [ref=f2e11] [cursor=pointer]
+      - button "Lemon" [ref=f2e12] [cursor=pointer]
+      - button "Apple" [ref=f2e13] [cursor=pointer]
+      - button "Pineapple" [ref=f2e14] [cursor=pointer]
+    - generic [ref=f2e15]:
+      - generic [ref=f2e16]: Wobble factor
+      - status [ref=f2e17]: 65%
+    - slider "Wobble factor" [ref=f2e18] [cursor=pointer]: "65"
+    - generic [ref=f2e19]:
+      - generic [ref=f2e20]: A LITTLE GIVE
+      - generic [ref=f2e21]: EXTRA JELLY
+    - generic [ref=f2e22]:
+      - generic [ref=f2e23]:
+        - text: Stretch
+        - generic [ref=f2e24]: 1.00×
+      - generic [ref=f2e25]:
+        - text: Bounces
+        - generic [ref=f2e26]: "00"
+    - button "Pour more bears +" [ref=f2e27] [cursor=pointer]:
+      - text: Pour more bears
+      - generic [ref=f2e28]: +
+    - generic [ref=f2e29]: SUGAR-FREE. LIMITLESSLY SQUISHABLE.
+  - generic: A LITTLE SQUISH GOES A LONG WAY
+  - contentinfo:
+    - generic: REAL-TIME JELLY PHYSICS
+    - generic: Made to make you smile.
+  - generic: Unwrapping something sweet…

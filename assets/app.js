@@ -130,7 +130,7 @@ async function renderViewer() {
 
   const src = runUrl(challenge, run);
   document.title = `${run.model} · ${document.title}`;
-  title.textContent = [run.model, run.harness, run.effort].filter(Boolean).join(" · ");
+  title.textContent = [run.model, run.provider, run.harness, run.effort].filter(Boolean).join(" · ");
   document.getElementById("viewer-raw").href = src;
   document.getElementById("viewer-frame").src = src;
 }

@@ -16,6 +16,22 @@
     "cost_usd": 1.79
   },
   {
+    "slug": "deepseek-4-1-flash-official",
+    "model": "DeepSeek 4.1 Flash",
+    "provider": "DeepSeek (official API)",
+    "harness": "pi 1.2.0",
+    "effort": "high",
+    "duration": "49m 47s",
+    "tokens_in": 73979,
+    "tokens_out": 267389,
+    "cost_usd": 0.54,
+    "turns": 158,
+    "nudges": 1,
+    "entry": "index.html",
+    "status": "done",
+    "notes": "60fps not verified on a real GPU; bears don't refract each other; an idle hop can occasionally tip a bear onto its side."
+  },
+  {
     "slug": "gpt-6-luna",
     "model": "GPT-6 Luna",
     "provider": "OpenAI Codex",

@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Gummy Bears.</title>
+<style>
+  :root{
+    --ink:#16130f;
+    --ink-soft:#6f675f;
+    --ink-faint:#a59d94;
+    --line:#e8e3dc;
+    --paper:#f7f5f2;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); overflow:hidden;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    cursor:none;
+  }
+  canvas#scene{ position:fixed; inset:0; display:block; width:100%; height:100%; touch-action:none; }
+
+  /* ---------- editorial hero ---------- */
+  .hero{
+    position:fixed; left:clamp(22px,4.2vw,58px); top:clamp(24px,5vh,58px);
+    z-index:20; pointer-events:none; max-width:min(52vw,620px);
+    animation:rise 1.1s cubic-bezier(.2,.7,.15,1) both;
+  }
+  .hero h1{
+    font-family:var(--serif); font-style:italic; font-weight:400;
+    font-size:clamp(46px,7.6vw,116px); line-height:.84; letter-spacing:-.025em;
+    margin:0; color:var(--ink);
+  }
+  .hero h1 .ln{ display:block; }
+  .hero h1 .ln:last-child{ padding-left:.06em; }
+  .rule{ width:42px; height:1px; background:var(--ink); opacity:.5; margin:22px 0 16px; }
+  .hero p{
+    margin:0; font-size:clamp(12.5px,1.05vw,14.5px); line-height:1.62;
+    color:var(--ink-soft); max-width:33ch; font-weight:400;
+  }
+  .hero .kicker{
+    font-size:10px; letter-spacing:.24em; text-transform:uppercase;
+    color:var(--ink-faint); margin-bottom:18px;
+  }
+
+  /* ---------- control card ---------- */
+  .card{
+    position:fixed; right:clamp(18px,3vw,44px); top:50%; transform:translateY(-50%);
+    width:266px; padding:20px 20px 18px; z-index:20;
+    background:rgba(255,255,255,.62);
+    -webkit-backdrop-filter:blur(18px) saturate(1.4);
+    backdrop-filter:blur(18px) saturate(1.4);
+    border:1px solid rgba(255,255,255,.75);
+    box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 24px 60px -18px rgba(40,32,24,.22), 0 2px 10px rgba(40,32,24,.05);
+    border-radius:18px;
+    animation:rise 1.1s .12s cubic-bezier(.2,.7,.15,1) both;
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(-46%) translateY(14px);} to{ opacity:1; } }
+  .hero{ animation-name:rise2; }
+  @keyframes rise2{ from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:none; } }
+
+  .label{
+    font-size:9.5px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--ink-faint); font-weight:500;
+  }
+  .row-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+  .sel-name{ font-family:var(--serif); font-style:italic; font-size:14px; color:var(--ink-soft); }
+
+  .swatches{ display:flex; gap:9px; margin-bottom:20px; }
+  .sw{
+    position:relative; width:34px; height:34px; padding:0; border:none; background:none;
+    cursor:none; -webkit-tap-highlight-color:transparent;
+  }
+  .sw i{
+    position:absolute; inset:3px; border-radius:50%; display:block;
+    box-shadow:0 4px 10px -3px rgba(60,40,20,.45), 0 0 0 1px rgba(0,0,0,.06) inset;
+    transition:transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s;
+  }
+  .sw:hover i{ transform:scale(1.09); }
+  .sw.on i{ transform:scale(1.06); box-shadow:0 0 0 1.5px #fff, 0 0 0 3px var(--ink), 0 5px 12px -3px rgba(60,40,20,.4); }
+  .sw .glow{
+    position:absolute; inset:-4px; border-radius:50%; opacity:0; pointer-events:none;
+    transition:opacity .28s;
+  }
+  .sw.on .glow{ opacity:.5; }
+
+  .slider{ margin-bottom:20px; }
+  .slider .head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+  .slider .val{ font-size:11px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:100%; height:20px; background:transparent; margin:0; cursor:none;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:2px; background:var(--line); border-radius:2px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:15px; height:15px; margin-top:-6.5px;
+    border-radius:50%; background:var(--ink); border:none;
+    box-shadow:0 2px 6px rgba(0,0,0,.28);
+    transition:transform .18s;
+  }
+  input[type=range]:active::-webkit-slider-thumb{ transform:scale(1.18); }
+  input[type=range]::-moz-range-track{ height:2px; background:var(--line); border-radius:2px; }
+  input[type=range]::-moz-range-thumb{ width:15px; height:15px; border:none; border-radius:50%; background:var(--ink); }
+
+  .stats{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    padding-top:16px; margin-bottom:18px; border-top:1px solid var(--line);
+  }
+  .stat .big{
+    font-family:var(--serif); font-size:26px; line-height:1.05; letter-spacing:-.01em;
+    color:var(--ink); font-variant-numeric:tabular-nums;
+  }
+  .stat .label{ display:block; margin-bottom:6px; }
+
+  #pour{
+    width:100%; padding:13px 14px; border:none; border-radius:11px; cursor:none;
+    background:var(--ink); color:#fdfcfb; font-family:var(--sans); font-size:12.5px;
+    letter-spacing:.055em; font-weight:500; -webkit-tap-highlight-color:transparent;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s, background .22s;
+    box-shadow:0 10px 22px -10px rgba(20,16,12,.7);
+  }
+  #pour:hover{ transform:translateY(-1.5px); box-shadow:0 16px 28px -12px rgba(20,16,12,.75); }
+  #pour:active{ transform:translateY(0) scale(.985); }
+
+  .foot{
+    margin-top:14px; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-faint); text-align:center;
+  }
+
+  /* ---------- cursor ---------- */
+  #cur{
+    position:fixed; left:0; top:0; width:30px; height:30px; margin:-15px 0 0 -15px;
+    border-radius:50%; border:1.25px solid rgba(22,19,15,.55); z-index:60;
+    pointer-events:none; opacity:0; transition:opacity .3s, width .22s cubic-bezier(.2,.8,.2,1), height .22s cubic-bezier(.2,.8,.2,1), margin .22s cubic-bezier(.2,.8,.2,1), background .25s, border-color .25s;
+    will-change:transform;
+  }
+  #cur.on{ opacity:1; }
+  #cur.grab{
+    width:54px; height:54px; margin:-27px 0 0 -27px;
+    background:rgba(22,19,15,.07); border-color:rgba(22,19,15,.35);
+  }
+  #cur .dot{
+    position:absolute; left:50%; top:50%; width:3px; height:3px; margin:-1.5px 0 0 -1.5px;
+    border-radius:50%; background:rgba(22,19,15,.85); transition:opacity .2s;
+  }
+  #cur.grab .dot{ opacity:0; }
+
+  @media (max-width:820px){
+    .hero{ max-width:74vw; }
+    .hero p{ max-width:26ch; }
+    .card{
+      top:auto; bottom:16px; right:16px; left:16px; width:auto;
+      transform:none; padding:16px; border-radius:16px;
+      animation:none;
+    }
+    .swatches{ margin-bottom:14px; }
+    .slider{ margin-bottom:14px; }
+    .stats{ margin-bottom:14px; padding-top:12px; }
+    .sw{ width:30px; height:30px; }
+    .stat .big{ font-size:21px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<header class="hero">
+  <div class="kicker">Soft&nbsp;body&nbsp;studies&nbsp;—&nbsp;No.&nbsp;01</div>
+  <h1><span class="ln">Gummy</span><span class="ln">Bears.</span></h1>
+  <div class="rule"></div>
+  <p>Five flavours of poured jelly, simulated as living soft bodies. Grab one, stretch it thin, squash it flat, throw it across the table.</p>
+</header>
+
+<aside class="card">
+  <div class="row-head">
+    <span class="label">Flavour</span>
+    <span class="sel-name" id="selName">Cherry</span>
+  </div>
+  <div class="swatches" id="swatches"></div>
+
+  <div class="slider">
+    <div class="head">
+      <span class="label">Wobble</span>
+      <span class="val" id="wobVal">0.55</span>
+    </div>
+    <input id="wob" type="range" min="0" max="1" step="0.01" value="0.55" />
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="label">Stretch</span><span class="big" id="stretch">1.00×</span></div>
+    <div class="stat"><span class="label">Bounces</span><span class="big" id="bounces">0</span></div>
+  </div>
+
+  <button id="pour">Pour more bears</button>
+  <div class="foot">Drag to grab · Release to wobble</div>
+</aside>
+
+<div id="cur"><span class="dot"></span></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ══════════════════════════════════════════════════════════════════════════
+   small math helpers
+   ══════════════════════════════════════════════════════════════════════════ */
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp  = (a, b, t) => a + (b - a) * t;
+const rnd   = (a, b) => a + Math.random() * (b - a);
+const smoothstep = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+
+/* polar decomposition of a 3×3 matrix (Higham iteration + Gram-Schmidt polish)
+   -> nearest rotation, exactly orthonormal                                        */
+const _m = new Float64Array(9);
+function polar(A, out) {
+  let a0 = A[0], a1 = A[1], a2 = A[2], a3 = A[3], a4 = A[4], a5 = A[5], a6 = A[6], a7 = A[7], a8 = A[8];
+  // polar(cA) === polar(A): normalise first so the Newton iteration starts near 1
+  const fro = Math.sqrt(a0 * a0 + a1 * a1 + a2 * a2 + a3 * a3 + a4 * a4 + a5 * a5 + a6 * a6 + a7 * a7 + a8 * a8);
+  if (fro > 1e-12) { const q = 1 / fro; a0 *= q; a1 *= q; a2 *= q; a3 *= q; a4 *= q; a5 *= q; a6 *= q; a7 *= q; a8 *= q; }
+  const tr = (a0 + a4 + a8) / 3;
+  const eps = Math.abs(tr) * 1e-3 + 1e-12;
+  a0 += eps; a4 += eps; a8 += eps;
+  for (let it = 0; it < 12; it++) {
+    const det = a0 * (a4 * a8 - a5 * a7) - a1 * (a3 * a8 - a5 * a6) + a2 * (a3 * a7 - a4 * a6);
+    if (Math.abs(det) < 1e-16) break;
+    const id = 1 / det;
+    const b0 =  (a4 * a8 - a5 * a7) * id, b1 = -(a1 * a8 - a2 * a7) * id, b2 =  (a1 * a5 - a2 * a4) * id;
+    const b3 = -(a3 * a8 - a5 * a6) * id, b4 =  (a0 * a8 - a2 * a6) * id, b5 = -(a0 * a5 - a2 * a3) * id;
+    const b6 =  (a3 * a7 - a4 * a6) * id, b7 = -(a0 * a7 - a1 * a6) * id, b8 =  (a0 * a4 - a1 * a3) * id;
+    a0 = 0.5 * (a0 + b0); a1 = 0.5 * (a1 + b3); a2 = 0.5 * (a2 + b6);
+    a3 = 0.5 * (a3 + b1); a4 = 0.5 * (a4 + b4); a5 = 0.5 * (a5 + b7);
+    a6 = 0.5 * (a6 + b2); a7 = 0.5 * (a7 + b5); a8 = 0.5 * (a8 + b8);
+    const e = Math.abs(a0 * a1 + a4 * a4 * 0 + (a0 * a3 + a1 * a4 + a2 * a5)) +
+              Math.abs(a0 * a0 + a1 * a1 + a2 * a2 - 1) + Math.abs(a4 * a4 + a5 * a5 + a3 * a3 - 1);
+    if (e < 1e-13) break;
+  }
+  // polish to an exact orthonormal frame (ill-conditioned directions land here)
+  let r0x = a0, r0y = a1, r0z = a2;
+  let r1x = a3, r1y = a4, r1z = a5;
+  let r2x = a6, r2y = a7, r2z = a8;
+  for (let pass = 0; pass < 2; pass++) {
+    let l = Math.hypot(r0x, r0y, r0z) || 1; r0x /= l; r0y /= l; r0z /= l;
+    let d = r1x * r0x + r1y * r0y + r1z * r0z;
+    r1x -= r0x * d; r1y -= r0y * d; r1z -= r0z * d;
+    l = Math.hypot(r1x, r1y, r1z) || 1; r1x /= l; r1y /= l; r1z /= l;
+    d = r2x * r0x + r2y * r0y + r2z * r0z;
+    r2x -= r0x * d; r2y -= r0y * d; r2z -= r0z * d;
+    d = r2x * r1x + r2y * r1y + r2z * r1z;
+    r2x -= r1x * d; r2y -= r1y * d; r2z -= r1z * d;
+    l = Math.hypot(r2x, r2y, r2z) || 1; r2x /= l; r2y /= l; r2z /= l;
+  }
+  const det2 = r0x * (r1y * r2z - r1z * r2y) - r0y * (r1x * r2z - r1z * r2x) + r0z * (r1x * r2y - r1y * r2x);
+  if (det2 < 0) { r2x = -r2x; r2y = -r2y; r2z = -r2z; }
+  out[0] = r0x; out[1] = r0y; out[2] = r0z;
+  out[3] = r1x; out[4] = r1y; out[5] = r1z;
+  out[6] = r2x; out[7] = r2y; out[8] = r2z;
+  return out;
+}
+const _tmpR = new Float64Array(9);
+const _tmpRN = new Float64Array(9);
+function mul3(out, A, B) {
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++)
+    out[r * 3 + c] = A[r * 3] * B[c] + A[r * 3 + 1] * B[3 + c] + A[r * 3 + 2] * B[6 + c];
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   renderer / scene
+   ══════════════════════════════════════════════════════════════════════════ */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+if ('transmissionResolutionScale' in renderer) renderer.transmissionResolutionScale = 0.6;
+
+const scene = new THREE.Scene();
+const PAPER = new THREE.Color(0xf6f4f1);
+scene.background = PAPER;
+scene.fog = new THREE.Fog(PAPER, 7.5, 21);
+
+const camera = new THREE.PerspectiveCamera(32, window.innerWidth / window.innerHeight, 0.1, 80);
+const camHome = new THREE.Vector3(0.0, 1.42, 3.80);
+const camTarget = new THREE.Vector3(-0.16, 0.36, 0.02);
+camera.position.copy(camHome);
+camera.lookAt(camTarget);
+
+/* environment --------------------------------------------------------------*/
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envRT = pmrem.fromScene(new RoomEnvironment(), 0.035);
+scene.environment = envRT.texture;
+if ('environmentIntensity' in scene) scene.environmentIntensity = 0.62;
+pmrem.dispose();
+
+/* lights -------------------------------------------------------------------*/
+const hemi = new THREE.HemisphereLight(0xffffff, 0xe9e4dc, 0.5);
+scene.add(hemi);
+const key = new THREE.DirectionalLight(0xfff6ec, 2.15);
+key.position.set(3.6, 6.2, 4.2);
+scene.add(key);
+const back = new THREE.DirectionalLight(0xdce7ff, 1.35);
+back.position.set(-4.6, 3.0, -5.0);
+scene.add(back);
+const fill = new THREE.DirectionalLight(0xffffff, 0.55);
+fill.position.set(-2.4, 1.2, 4.6);
+scene.add(fill);
+
+/* table --------------------------------------------------------------------*/
+const tableMat = new THREE.MeshStandardMaterial({ color: 0xfdfcfa, roughness: 0.62, metalness: 0.0 });
+const table = new THREE.Mesh(new THREE.PlaneGeometry(48, 48), tableMat);
+table.rotation.x = -Math.PI / 2;
+table.position.y = 0;
+scene.add(table);
+
+/* soft contact shadow bed (tinted, one per bear) ---------------------------*/
+function shadowTexture() {
+  const S = 128, c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  grd.addColorStop(0.00, 'rgba(146,146,146,1)');
+  grd.addColorStop(0.22, 'rgba(206,206,206,0.80)');
+  grd.addColorStop(0.52, 'rgba(240,240,240,0.42)');
+  grd.addColorStop(0.78, 'rgba(255,255,255,0.13)');
+  grd.addColorStop(1.00, 'rgba(255,255,255,0.00)');
+  g.fillStyle = grd; g.fillRect(0, 0, S, S);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.needsUpdate = true;
+  return t;
+}
+const SHADOW_TEX = shadowTexture();
+const shadowGeo = new THREE.CircleGeometry(1, 48);
+
+/* ══════════════════════════════════════════════════════════════════════════
+   flavours
+   ══════════════════════════════════════════════════════════════════════════ */
+const FLAVORS = [
+  { name: 'Cherry',    ui: '#d51f36', color: 0xffc6cb, atten: 0xff2b3c, dist: 0.23, shadow: '#dc5165', strandColor: 0xe4203c },
+  { name: 'Orange',    ui: '#ef7a12', color: 0xffd9ab, atten: 0xff8a12, dist: 0.23, shadow: '#ec8235', strandColor: 0xef7a16 },
+  { name: 'Lemon',     ui: '#eec30d', color: 0xfff4b4, atten: 0xfff23a, dist: 0.23, shadow: '#e6c73e', strandColor: 0xe3ba0e },
+  { name: 'Apple',     ui: '#61b32a', color: 0xd6ffb8, atten: 0x9cff3c, dist: 0.23, shadow: '#72c243', strandColor: 0x5fb028 },
+  { name: 'Pineapple', ui: '#efdc95', color: 0xfffdf4, atten: 0xfff2d6, dist: 0.50, shadow: '#d9c98c', strandColor: 0xeadfae },
+];
+
+function makeGummyMaterial(f) {
+  const m = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(f.color),
+    roughness: 0.07,
+    metalness: 0.0,
+    ior: 1.44,
+    transmission: 0.90,
+    thickness: 0.36,
+    attenuationColor: new THREE.Color(f.atten),
+    attenuationDistance: f.dist,
+    specularIntensity: 1.0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.055,
+    envMapIntensity: 1.02,
+    side: THREE.FrontSide,
+  });
+  m.name = 'gummy-' + f.name;
+  return m;
+}
+const BASE_MATS = FLAVORS.map(makeGummyMaterial);
+/* thin stretched candy reads much paler than the bulk, so strands get their own
+   (slightly denser, less glassy) mix of the same flavour */
+function makeStrandMaterial(f) {
+  const m = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(f.strandColor),
+    roughness: 0.24,
+    metalness: 0.0,
+    ior: 1.40,
+    transmission: 0.78,
+    thickness: 0.19,
+    attenuationColor: new THREE.Color(f.atten),
+    attenuationDistance: f.dist * 0.55,
+    specularIntensity: 0.5,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.30,
+    envMapIntensity: 0.42,
+    side: THREE.FrontSide,
+  });
+  m.name = 'strand-' + f.name;
+  return m;
+}
+const BASE_STRAND_MATS = FLAVORS.map(makeStrandMaterial);
+const EYE_GEO = new THREE.SphereGeometry(1, 20, 14);
+const EYE_MAT = new THREE.MeshPhysicalMaterial({
+  color: 0x2b1d18, roughness: 0.22, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.08, envMapIntensity: 0.9,
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE BEAR — canonical mass points
+   index : name      x       y       z     mass   collR  ballR
+   ══════════════════════════════════════════════════════════════════════════ */
+const P_DEF = [
+  //  0        1        2        3        4       5        6
+  ['head',   0.000,  0.788,  0.020,   1.00,  0.150,  0.186],
+  ['earL',  -0.145,  0.930,  0.005,   0.22,  0.055,  0.072],
+  ['earR',   0.145,  0.930,  0.005,   0.22,  0.055,  0.072],
+  ['snout',  0.000,  0.742,  0.170,   0.32,  0.060,  0.082],
+  ['chest',  0.000,  0.548,  0.015,   1.00,  0.120,  0.166],
+  ['body',   0.000,  0.385,  0.000,   1.30,  0.140,  0.204],
+  ['belly',  0.000,  0.248,  0.038,   1.00,  0.118,  0.172,  0.248],
+  ['shL',   -0.186,  0.462,  0.020,   0.55,  0.072,  0.096],
+  ['shR',    0.186,  0.462,  0.020,   0.55,  0.072,  0.096],
+  ['handL', -0.298,  0.304,  0.058,   0.36,  0.064,  0.085],
+  ['handR',  0.298,  0.304,  0.058,   0.36,  0.064,  0.085],
+  ['hipL',  -0.122,  0.156,  0.000,   0.55,  0.082,  0.104,  0.156],
+  ['hipR',   0.122,  0.156,  0.000,   0.55,  0.082,  0.104,  0.156],
+  ['footL', -0.152,  0.086,  0.056,   0.46,  0.086,  0.088],
+  ['footR',  0.152,  0.086,  0.056,   0.46,  0.086,  0.088],
+];
+const NP = P_DEF.length;
+const SCALE = 0.76;
+const REST = new Float32Array(NP * 3);
+const MASS = new Float32Array(NP);
+const INV_MASS = new Float32Array(NP);
+const COLL_R = new Float32Array(NP);
+const FLOOR_R = new Float32Array(NP);
+const BALL_R = new Float32Array(NP);
+for (let i = 0; i < NP; i++) {
+  REST[i * 3] = P_DEF[i][1] * SCALE; REST[i * 3 + 1] = P_DEF[i][2] * SCALE; REST[i * 3 + 2] = P_DEF[i][3] * SCALE;
+  MASS[i] = P_DEF[i][4];
+  INV_MASS[i] = 1 / MASS[i];
+  COLL_R[i] = P_DEF[i][5] * SCALE;
+  FLOOR_R[i] = (P_DEF[i][7] !== undefined ? P_DEF[i][7] : P_DEF[i][5]) * SCALE;
+  BALL_R[i] = P_DEF[i][6] * SCALE;
+}
+const REST_COM = new THREE.Vector3();
+{
+  let tm = 0;
+  for (let i = 0; i < NP; i++) {
+    REST_COM.x += REST[i * 3] * MASS[i];
+    REST_COM.y += REST[i * 3 + 1] * MASS[i];
+    REST_COM.z += REST[i * 3 + 2] * MASS[i];
+    tm += MASS[i];
+  }
+  REST_COM.multiplyScalar(1 / tm);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   implicit surface  (metaballs + surface nets)  ->  one smooth skin
+   ══════════════════════════════════════════════════════════════════════════ */
+function buildSkin() {
+  const B = NP;
+  const RR = new Float32Array(B), RR2 = new Float32Array(B);
+  for (let b = 0; b < B; b++) { RR[b] = BALL_R[b] * 1.56; RR2[b] = RR[b] * RR[b]; }
+  const bx = new Float32Array(B), by = new Float32Array(B), bz = new Float32Array(B);
+  for (let b = 0; b < B; b++) { bx[b] = REST[b * 3]; by[b] = REST[b * 3 + 1]; bz[b] = REST[b * 3 + 2]; }
+
+  const iso = 0.2, cell = (SCALE >= 0.9 ? 0.0230 : 0.0198);
+  const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+  for (let b = 0; b < B; b++) {
+    const c = [bx[b], by[b], bz[b]];
+    for (let a = 0; a < 3; a++) { mn[a] = Math.min(mn[a], c[a] - RR[b]); mx[a] = Math.max(mx[a], c[a] + RR[b]); }
+  }
+  for (let a = 0; a < 3; a++) { mn[a] -= cell * 1.5; mx[a] += cell * 1.5; }
+
+  const nx = Math.ceil((mx[0] - mn[0]) / cell) + 1;
+  const ny = Math.ceil((mx[1] - mn[1]) / cell) + 1;
+  const nz = Math.ceil((mx[2] - mn[2]) / cell) + 1;
+  const field = new Float32Array(nx * ny * nz);
+  const at = (i, j, k) => (k * ny + j) * nx + i;
+
+  for (let k = 0; k < nz; k++) {
+    const z = mn[2] + k * cell;
+    for (let j = 0; j < ny; j++) {
+      const y = mn[1] + j * cell;
+      for (let i = 0; i < nx; i++) {
+        const x = mn[0] + i * cell;
+        let f = 0;
+        for (let b = 0; b < B; b++) {
+          const dx = x - bx[b], dy = y - by[b], dz = z - bz[b];
+          const d2 = dx * dx + dy * dy + dz * dz;
+          if (d2 < RR2[b]) { const t = 1 - d2 / RR2[b]; f += t * t * t; }
+        }
+        field[at(i, j, k)] = f - iso;
+      }
+    }
+  }
+
+  const cx = nx - 1, cy = ny - 1, cz = nz - 1;
+  const cvert = new Int32Array(cx * cy * cz).fill(-1);
+  const cat = (i, j, k) => (k * cy + j) * cx + i;
+  const verts = [];
+  const CO = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
+  const ED = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+  const cv = new Float64Array(8);
+
+  for (let k = 0; k < cz; k++) for (let j = 0; j < cy; j++) for (let i = 0; i < cx; i++) {
+    let neg = 0, pos = 0;
+    for (let c = 0; c < 8; c++) {
+      const o = CO[c], v = field[at(i + o[0], j + o[1], k + o[2])];
+      cv[c] = v; if (v < 0) neg++; else pos++;
+    }
+    if (neg === 0 || pos === 0) continue;
+    let su = 0, sv = 0, sw = 0, n = 0;
+    for (let e = 0; e < 12; e++) {
+      const a = ED[e][0], b2 = ED[e][1], va = cv[a], vb = cv[b2];
+      if ((va < 0) === (vb < 0)) continue;
+      const t = va / (va - vb);
+      const oa = CO[a], ob = CO[b2];
+      su += oa[0] + (ob[0] - oa[0]) * t;
+      sv += oa[1] + (ob[1] - oa[1]) * t;
+      sw += oa[2] + (ob[2] - oa[2]) * t;
+      n++;
+    }
+    cvert[cat(i, j, k)] = verts.length / 3;
+    verts.push(mn[0] + (i + su / n) * cell, mn[1] + (j + sv / n) * cell, mn[2] + (k + sw / n) * cell);
+  }
+
+  const idx = [];
+  const quad = (a, b, c, d) => idx.push(a, b, c, a, c, d);
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const v0 = field[at(i, j, k)];
+    if (i < cx && j >= 1 && k >= 1 && j < cy && k < cz) {
+      const v1 = field[at(i + 1, j, k)];
+      if ((v0 < 0) !== (v1 < 0)) quad(cvert[cat(i, j - 1, k - 1)], cvert[cat(i, j, k - 1)], cvert[cat(i, j, k)], cvert[cat(i, j - 1, k)]);
+    }
+    if (j < cy && i >= 1 && k >= 1 && i < cx && k < cz) {
+      const v1 = field[at(i, j + 1, k)];
+      if ((v0 < 0) !== (v1 < 0)) quad(cvert[cat(i - 1, j, k - 1)], cvert[cat(i, j, k - 1)], cvert[cat(i, j, k)], cvert[cat(i - 1, j, k)]);
+    }
+    if (k < cz && i >= 1 && j >= 1 && i < cx && j < cy) {
+      const v1 = field[at(i, j, k + 1)];
+      if ((v0 < 0) !== (v1 < 0)) quad(cvert[cat(i - 1, j - 1, k)], cvert[cat(i, j - 1, k)], cvert[cat(i, j, k)], cvert[cat(i - 1, j, k)]);
+    }
+  }
+
+  const nv = verts.length / 3;
+  const pos = new Float32Array(verts);
+  const nrm = new Float32Array(nv * 3);
+
+  // analytic gradient normals + per-vertex bone weights
+  const WC = 4; // weights kept per vertex
+  const wIdx = new Uint8Array(nv * WC);
+  const wVal = new Float32Array(nv * WC);
+  const ker = new Float64Array(B);
+  for (let v = 0; v < nv; v++) {
+    const x = pos[v * 3], y = pos[v * 3 + 1], z = pos[v * 3 + 2];
+    let gx = 0, gy = 0, gz = 0, tot = 0;
+    for (let b = 0; b < B; b++) {
+      const dx = x - bx[b], dy = y - by[b], dz = z - bz[b];
+      const d2 = dx * dx + dy * dy + dz * dz;
+      let t = 0;
+      if (d2 < RR2[b]) { t = 1 - d2 / RR2[b]; const k3 = t * t * t; ker[b] = k3; tot += k3; gx += -6 * t * t * dx / RR2[b]; gy += -6 * t * t * dy / RR2[b]; gz += -6 * t * t * dz / RR2[b]; }
+      else ker[b] = 0;
+    }
+    const gl = Math.hypot(gx, gy, gz) || 1;
+    nrm[v * 3] = -gx / gl; nrm[v * 3 + 1] = -gy / gl; nrm[v * 3 + 2] = -gz / gl;
+
+    // keep the strongest WC bones
+    const order = [];
+    for (let b = 0; b < B; b++) if (ker[b] > 1e-5) order.push(b);
+    order.sort((a, b2) => ker[b2] - ker[a]);
+    let sum = 0;
+    for (let s = 0; s < WC; s++) {
+      const b = s < order.length ? order[s] : -1;
+      const w = b >= 0 ? ker[b] : 0;
+      wIdx[v * WC + s] = b < 0 ? 0 : b;
+      wVal[v * WC + s] = w; sum += w;
+    }
+    if (sum <= 0) { wIdx[v * WC] = 0; wVal[v * WC] = 1; sum = 1; }
+    for (let s = 0; s < WC; s++) wVal[v * WC + s] /= sum;
+  }
+
+  // consistent winding: face normal must agree with the surface normal
+  for (let t = 0; t < idx.length; t += 3) {
+    const a = idx[t], b = idx[t + 1], c = idx[t + 2];
+    const ax = pos[a * 3], ay = pos[a * 3 + 1], az = pos[a * 3 + 2];
+    const e1x = pos[b * 3] - ax, e1y = pos[b * 3 + 1] - ay, e1z = pos[b * 3 + 2] - az;
+    const e2x = pos[c * 3] - ax, e2y = pos[c * 3 + 1] - ay, e2z = pos[c * 3 + 2] - az;
+    const fx = e1y * e2z - e1z * e2y, fy = e1z * e2x - e1x * e2z, fz = e1x * e2y - e1y * e2x;
+    const nx2 = nrm[a * 3] + nrm[b * 3] + nrm[c * 3];
+    const ny2 = nrm[a * 3 + 1] + nrm[b * 3 + 1] + nrm[c * 3 + 1];
+    const nz2 = nrm[a * 3 + 2] + nrm[b * 3 + 2] + nrm[c * 3 + 2];
+    if (fx * nx2 + fy * ny2 + fz * nz2 < 0) { idx[t + 1] = c; idx[t + 2] = b; }
+  }
+
+  return { pos, nrm, idx: new Uint32Array(idx), wIdx, wVal, nv, WC };
+}
+
+const SKIN = buildSkin();
+
+/* ---------- strand topology (neck + limbs) -------------------------------- */
+const STRANDS = [
+  { a: 0, b: 4, r: 0.170 * SCALE },  // neck
+  { a: 7, b: 9, r: 0.105 * SCALE },  // arm L
+  { a: 8, b: 10, r: 0.105 * SCALE }, // arm R
+  { a: 11, b: 13, r: 0.122 * SCALE },// leg L
+  { a: 12, b: 14, r: 0.122 * SCALE },// leg R
+];
+const STRAND_RAD = 8, STRAND_LEN = 7;
+
+/* ---------- elastic skeleton ---------------------------------------------- */
+const EDGE_STIFF = new Float32Array(1);
+const EDGES = [
+  [0, 1, 0.95, 1.55], [0, 2, 0.95, 1.55], [1, 2, 0.75, 1.55], [0, 3, 0.95, 1.70], [1, 3, 0.55, 1.70], [2, 3, 0.55, 1.70],
+  [0, 4, 0.030, 2.80], [0, 5, 0.011, 3.60], [0, 7, 0.017, 3.10], [0, 8, 0.017, 3.10], [1, 4, 0.045, 2.20], [2, 4, 0.045, 2.20], [3, 4, 0.030, 2.50],
+  [4, 5, 0.60, 1.45], [5, 6, 0.60, 1.45], [4, 6, 0.45, 1.60],
+  [4, 7, 0.55, 1.45], [4, 8, 0.55, 1.45], [5, 7, 0.30, 1.75], [5, 8, 0.30, 1.75],
+  [7, 9, 0.045, 3.80], [8, 10, 0.045, 3.80], [9, 5, 0.014, 3.10], [10, 5, 0.014, 3.10],
+  [5, 11, 0.50, 1.60], [5, 12, 0.50, 1.60], [6, 11, 0.45, 1.55], [6, 12, 0.45, 1.55], [4, 11, 0.26, 1.85], [4, 12, 0.26, 1.85],
+  [11, 13, 0.050, 3.40], [12, 14, 0.050, 3.40], [6, 13, 0.26, 1.90], [6, 14, 0.26, 1.90],
+  [7, 10, 0.05, 2.60], [8, 9, 0.05, 2.60], [1, 5, 0.018, 2.80], [2, 5, 0.018, 2.80],
+  [13, 14, 0.30, 1.70], [9, 1, 0.018, 3.00], [10, 2, 0.018, 3.00],
+];
+const NE = EDGES.length;
+const EDGE_REST = new Float32Array(NE);
+for (let e = 0; e < NE; e++) {
+  const a = EDGES[e][0], b = EDGES[e][1];
+  EDGE_REST[e] = Math.hypot(REST[a * 3] - REST[b * 3], REST[a * 3 + 1] - REST[b * 3 + 1], REST[a * 3 + 2] - REST[b * 3 + 2]);
+}
+
+/* ---------- shape-matching clusters --------------------------------------- */
+const CLUSTERS = [
+  { idx: [0, 1, 2, 3], k: 0.80 },   // skull — nearly rigid
+  { idx: [4, 6, 7, 8, 5], k: 0.26 }, // torso
+  { idx: [6, 11, 12, 5], k: 0.22 },  // pelvis
+];
+for (const cl of CLUSTERS) {
+  const n = cl.idx.length;
+  cl.n = n;
+  cl.com = new Float64Array(3);
+  cl.r0 = new Float64Array(n * 3); // rest offsets from rest com
+  let tm = 0;
+  for (const i of cl.idx) { cl.com[0] += REST[i * 3] * MASS[i]; cl.com[1] += REST[i * 3 + 1] * MASS[i]; cl.com[2] += REST[i * 3 + 2] * MASS[i]; tm += MASS[i]; }
+  cl.com[0] /= tm; cl.com[1] /= tm; cl.com[2] /= tm;
+  for (let s = 0; s < n; s++) {
+    const i = cl.idx[s];
+    cl.r0[s * 3] = REST[i * 3] - cl.com[0];
+    cl.r0[s * 3 + 1] = REST[i * 3 + 1] - cl.com[1];
+    cl.r0[s * 3 + 2] = REST[i * 3 + 2] - cl.com[2];
+  }
+  cl.A0 = new Float64Array(9);
+  cl.R = new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+  cl.A = new Float64Array(9);
+}
+
+/* ---------- global covariance + bone neighbourhoods ----------------------- */
+const REST_COV = new Float64Array(9);
+{
+  let tm = 0; for (let i = 0; i < NP; i++) tm += MASS[i];
+  const off = new Float64Array(3 * NP);
+  for (let i = 0; i < NP; i++) { off[i * 3] = REST[i * 3] - REST_COM.x; off[i * 3 + 1] = REST[i * 3 + 1] - REST_COM.y; off[i * 3 + 2] = REST[i * 3 + 2] - REST_COM.z; }
+  for (let i = 0; i < NP; i++) for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++)
+    REST_COV[a * 3 + b] += MASS[i] * off[i * 3 + a] * off[i * 3 + b] / tm;
+}
+const REST_COV_INV = (() => {
+  const a = REST_COV, det = a[0] * (a[4] * a[8] - a[5] * a[7]) - a[1] * (a[3] * a[8] - a[5] * a[6]) + a[2] * (a[3] * a[7] - a[4] * a[6]);
+  const id = 1 / det;
+  return new Float64Array([
+    (a[4] * a[8] - a[5] * a[7]) * id, -(a[1] * a[8] - a[2] * a[7]) * id, (a[1] * a[5] - a[2] * a[4]) * id,
+    -(a[3] * a[8] - a[5] * a[6]) * id, (a[0] * a[8] - a[2] * a[6]) * id, -(a[0] * a[5] - a[2] * a[3]) * id,
+    (a[3] * a[7] - a[4] * a[6]) * id, -(a[0] * a[7] - a[1] * a[6]) * id, (a[0] * a[4] - a[1] * a[3]) * id,
+  ]);
+})();
+
+/* bone neighbourhood weights, used for the per-bone local rotation */
+const NBR_W = new Float64Array(NP * NP);
+for (let i = 0; i < NP; i++) {
+  let sum = 0;
+  for (let j = 0; j < NP; j++) {
+    if (i === j) { NBR_W[i * NP + j] = 0; continue; }
+    const d = Math.hypot(REST[i * 3] - REST[j * 3], REST[i * 3 + 1] - REST[j * 3 + 1], REST[i * 3 + 2] - REST[j * 3 + 2]);
+    const w = Math.exp(-(d * d) / (0.30 * 0.30)) * MASS[j];
+    NBR_W[i * NP + j] = w; sum += w;
+  }
+  if (sum > 0) for (let j = 0; j < NP; j++) NBR_W[i * NP + j] /= sum;
+}
+/* bones that simply inherit the skull rotation */
+const HEAD_BONES = [1, 2, 3];
+
+/* ══════════════════════════════════════════════════════════════════════════
+   strand mesh topology (shared index buffer)
+   ══════════════════════════════════════════════════════════════════════════ */
+const STRAND_SEG = (STRAND_LEN + 1) * STRAND_RAD;
+const STRAND_VERTS = STRAND_SEG * STRANDS.length;
+const STRAND_INDEX = (() => {
+  const a = [];
+  for (let s = 0; s < STRANDS.length; s++) {
+    const base = s * STRAND_SEG;
+    for (let l = 0; l < STRAND_LEN; l++) for (let r = 0; r < STRAND_RAD; r++) {
+      const r2 = (r + 1) % STRAND_RAD;
+      const i0 = base + l * STRAND_RAD + r, i1 = base + l * STRAND_RAD + r2;
+      const i2 = base + (l + 1) * STRAND_RAD + r2, i3 = base + (l + 1) * STRAND_RAD + r;
+      a.push(i0, i1, i2, i0, i2, i3);
+    }
+  }
+  return new Uint16Array(a);
+})();
+
+/* face anchors (rest space) ------------------------------------------------ */
+const nrm3 = (x, y, z) => { const l = Math.hypot(x, y, z); return [x / l, y / l, z / l]; };
+const EYE_L = (() => { const d = nrm3(-0.38, 0.34, 0.86), r = BALL_R[0] * 0.95; return [REST[0] + d[0] * r, REST[1] + d[1] * r, REST[2] + d[2] * r]; })();
+const EYE_R = (() => { const d = nrm3(0.38, 0.34, 0.86), r = BALL_R[0] * 0.95; return [REST[0] + d[0] * r, REST[1] + d[1] * r, REST[2] + d[2] * r]; })();
+const NOSE = (() => { const d = nrm3(0, 0.10, 0.99); return [REST[9] + d[0] * BALL_R[3] * 0.94, REST[10] + d[1] * BALL_R[3] * 0.94, REST[11] + d[2] * BALL_R[3] * 0.94]; })();
+
+const DET_REST_COV = (() => {
+  const a = REST_COV;
+  return a[0] * (a[4] * a[8] - a[5] * a[7]) - a[1] * (a[3] * a[8] - a[5] * a[6]) + a[2] * (a[3] * a[7] - a[4] * a[6]);
+})();
+
+const TABLE_X = 1.42, TABLE_Z = 1.02, REST_Y = 0;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   physics tuning (driven by the wobble slider)
+   ══════════════════════════════════════════════════════════════════════════ */
+const PHYS = {
+  wobble: 0.55,
+  gravity: -9.8,
+  substeps: 1,
+  iters: 3,
+  edgeScale: 1, shapeScale: 1, damp: 0.9993, volBeta: 0.6, restitution: 0.42, friction: 0.30,
+  maxVel: 8.0, maxCorr: 0.028,
+};
+function tunePhysics(w) {
+  PHYS.wobble = w;
+  PHYS.edgeScale = lerp(1.35, 0.55, w);
+  PHYS.shapeScale = lerp(1.30, 0.50, w);
+  PHYS.damp = lerp(0.9975, 0.99985, w);
+  PHYS.volBeta = lerp(0.22, 0.45, w);
+  PHYS.restitution = lerp(0.30, 0.52, w);
+}
+tunePhysics(PHYS.wobble);
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BEAR
+   ══════════════════════════════════════════════════════════════════════════ */
+const ALL = [];
+
+class Bear {
+  constructor(fi, x, z, opts = {}) {
+    this.fi = fi;
+    this.flavor = FLAVORS[fi];
+    this.p = new Float32Array(NP * 3);
+    this.pp = new Float32Array(NP * 3);
+    this.v = new Float32Array(NP * 3);
+    this.grab = -1;
+    this.grabV = new THREE.Vector3();
+    this.squashSeen = 0;
+    this.hopTimer = rnd(1.5, 6.0);
+    this.calmTimer = 0;
+    this.bounceCool = 0;
+    this.com = new Float64Array(3);
+    this.Rg = new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+    this.S = new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+    this.Sinv = new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+    this.Ag = new Float64Array(9);
+    this.boneR = [];
+    this.boneN = [];
+    for (let i = 0; i < NP; i++) {
+      this.boneR.push(new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]));
+      this.boneN.push(new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]));
+    }
+    this.alive = true;
+
+    // material clone so thickness can track the squash
+    this.mat = BASE_MATS[fi].clone();
+    this.strandMat = BASE_STRAND_MATS[fi].clone();
+
+    // skinned body
+    this.geo = new THREE.BufferGeometry();
+    this.posAttr = new THREE.BufferAttribute(new Float32Array(SKIN.nv * 3), 3);
+    this.nrmAttr = new THREE.BufferAttribute(new Float32Array(SKIN.nv * 3), 3);
+    this.posAttr.setUsage(THREE.DynamicDrawUsage);
+    this.nrmAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geo.setAttribute('position', this.posAttr);
+    this.geo.setAttribute('normal', this.nrmAttr);
+    this.geo.setIndex(new THREE.BufferAttribute(SKIN.idx, 1));
+    this.mesh = new THREE.Mesh(this.geo, this.mat);
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 2;
+    scene.add(this.mesh);
+
+    // strands
+    this.sgeo = new THREE.BufferGeometry();
+    this.spos = new THREE.BufferAttribute(new Float32Array(STRAND_VERTS * 3), 3);
+    this.snrm = new THREE.BufferAttribute(new Float32Array(STRAND_VERTS * 3), 3);
+    this.spos.setUsage(THREE.DynamicDrawUsage);
+    this.snrm.setUsage(THREE.DynamicDrawUsage);
+    this.sgeo.setAttribute('position', this.spos);
+    this.sgeo.setAttribute('normal', this.snrm);
+    this.sgeo.setIndex(new THREE.BufferAttribute(STRAND_INDEX, 1));
+    this.smesh = new THREE.Mesh(this.sgeo, this.strandMat);
+    this.smesh.frustumCulled = false;
+    this.smesh.renderOrder = 2;
+    scene.add(this.smesh);
+
+    // face
+    this.eyes = [];
+    for (let i = 0; i < 3; i++) {
+      const m = new THREE.Mesh(EYE_GEO, EYE_MAT);
+      m.frustumCulled = false;
+      m.renderOrder = 1;
+      scene.add(m);
+      this.eyes.push(m);
+    }
+
+    // soft tinted shadow
+    this.shadowMat = new THREE.MeshBasicMaterial({
+      map: SHADOW_TEX, color: new THREE.Color(this.flavor.shadow), transparent: true,
+      depthWrite: false, opacity: 0.4, toneMapped: false,
+    });
+    this.shadow = new THREE.Mesh(shadowGeo, this.shadowMat);
+    this.shadow.rotation.x = -Math.PI / 2;
+    this.shadow.position.y = 0.004;
+    this.shadow.renderOrder = 0;
+    scene.add(this.shadow);
+
+    this.spawnRot = opts.rot !== undefined ? opts.rot : Math.random() * Math.PI * 2;
+    this.place(x, z, this.spawnRot, opts.y || 0);
+    if (opts.vel) for (let i = 0; i < NP * 3; i++) this.v[i] = (Math.random() - 0.5) * 0.7;
+    this.solveVolume();       // establishes com + covariance before anything else
+    this.updateFrames();
+    this.writeSkin();
+    this.writeStrands();
+    ALL.push(this);
+  }
+
+  place(x, z, rot, y) {
+    const c = Math.cos(rot), s = Math.sin(rot);
+    for (let i = 0; i < NP; i++) {
+      const rx = REST[i * 3], ry = REST[i * 3 + 1], rz = REST[i * 3 + 2];
+      const wx = rx * c - rz * s + x, wy = ry + y, wz = rx * s + rz * c + z;
+      this.p[i * 3] = this.pp[i * 3] = wx;
+      this.p[i * 3 + 1] = this.pp[i * 3 + 1] = wy;
+      this.p[i * 3 + 2] = this.pp[i * 3 + 2] = wz;
+      this.v[i * 3] = this.v[i * 3 + 1] = this.v[i * 3 + 2] = 0;
+    }
+    this.grab = -1;
+  }
+
+  /* ---------------------------------------------------------------- physics */
+  integrate(dt) {
+    const g = PHYS.gravity, d = PHYS.damp;
+    const gb = this.grab;
+    for (let i = 0; i < NP; i++) {
+      const k = i * 3;
+      if (i === gb) { // kinematic follow
+        const tx = this.grabV.x, ty = this.grabV.y, tz = this.grabV.z;
+        const f = 0.62;
+        let nx = this.p[k] + (tx - this.p[k]) * f;
+        let ny = this.p[k + 1] + (ty - this.p[k + 1]) * f;
+        let nz = this.p[k + 2] + (tz - this.p[k + 2]) * f;
+        const minY = FLOOR_R[i] * 0.92;
+        if (ny < minY) ny = minY;
+        this.pp[k] = this.p[k]; this.pp[k + 1] = this.p[k + 1]; this.pp[k + 2] = this.p[k + 2];
+        this.p[k] = nx; this.p[k + 1] = ny; this.p[k + 2] = nz;
+        continue;
+      }
+      let vx = (this.v[k] + 0) * d, vy = (this.v[k + 1] + g * dt) * d, vz = this.v[k + 2] * d;
+      // velocity clamp
+      const sp = vx * vx + vy * vy + vz * vz;
+      if (sp > 225) { const f = 15 / Math.sqrt(sp); vx *= f; vy *= f; vz *= f; }
+      this.v[k] = vx; this.v[k + 1] = vy; this.v[k + 2] = vz;
+      this.pp[k] = this.p[k]; this.pp[k + 1] = this.p[k + 1]; this.pp[k + 2] = this.p[k + 2];
+      this.p[k] += vx * dt; this.p[k + 1] += vy * dt; this.p[k + 2] += vz * dt;
+    }
+  }
+
+  solveEdges() {
+    const p = this.p, gb = this.grab;
+    for (let e = 0; e < NE; e++) {
+      const ed = EDGES[e], a = ed[0], b = ed[1];
+      const ka = a * 3, kb = b * 3;
+      let dx = p[kb] - p[ka], dy = p[kb + 1] - p[ka + 1], dz = p[kb + 2] - p[ka + 2];
+      let d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (d < 1e-5) continue;
+      const rest = EDGE_REST[e];
+      let diff = d - rest;
+      let st = Math.min(1, ed[2] * PHYS.edgeScale);
+      const maxL = rest * ed[3];
+      if (d > maxL) { st = 1; diff = d - maxL; }
+      const wa = a === gb ? 0 : INV_MASS[a], wb = b === gb ? 0 : INV_MASS[b];
+      const ws = wa + wb;
+      if (ws <= 0) continue;
+      let corr = diff * st;
+      const maxC = PHYS.maxCorr;
+      if (corr > maxC) corr = maxC;
+      else if (corr < -maxC) corr = -maxC;
+      const f = corr / (d * ws);
+      const cx = dx * f, cy = dy * f, cz = dz * f;
+      if (wa) { p[ka] += cx * wa; p[ka + 1] += cy * wa; p[ka + 2] += cz * wa; }
+      if (wb) { p[kb] -= cx * wb; p[kb + 1] -= cy * wb; p[kb + 2] -= cz * wb; }
+    }
+  }
+
+  solveClusters() {
+    const p = this.p, gb = this.grab;
+    for (let ci = 0; ci < CLUSTERS.length; ci++) {
+      const cl = CLUSTERS[ci], n = cl.n, idxArr = cl.idx;
+      let cxm = 0, cym = 0, czm = 0, tm = 0;
+      for (let s = 0; s < n; s++) { const i = idxArr[s], k = i * 3; cxm += p[k] * MASS[i]; cym += p[k + 1] * MASS[i]; czm += p[k + 2] * MASS[i]; tm += MASS[i]; }
+      cxm /= tm; cym /= tm; czm /= tm;
+      const A = cl.A;
+      A[0] = A[1] = A[2] = A[3] = A[4] = A[5] = A[6] = A[7] = A[8] = 0;
+      for (let s = 0; s < n; s++) {
+        const i = idxArr[s], k = i * 3;
+        const ax = p[k] - cxm, ay = p[k + 1] - cym, az = p[k + 2] - czm;
+        const bx = cl.r0[s * 3], by = cl.r0[s * 3 + 1], bz = cl.r0[s * 3 + 2];
+        const m = MASS[i];
+        A[0] += m * ax * bx; A[1] += m * ax * by; A[2] += m * ax * bz;
+        A[3] += m * ay * bx; A[4] += m * ay * by; A[5] += m * ay * bz;
+        A[6] += m * az * bx; A[7] += m * az * by; A[8] += m * az * bz;
+      }
+      // these clusters are nearly planar: bias the fit toward the global frame
+      const Rg = this.Rg;
+      const pr = (Math.abs(A[0] + A[4] + A[8]) / 3) * 0.45 + 1e-7;
+      for (let q = 0; q < 9; q++) A[q] += pr * Rg[q];
+      const R = polar(A, cl.R);
+      const st0 = Math.min(0.40, cl.k * PHYS.shapeScale);
+      for (let s = 0; s < n; s++) {
+        const i = idxArr[s];
+        if (i === gb) continue;
+        const k = i * 3;
+        const bx = cl.r0[s * 3], by = cl.r0[s * 3 + 1], bz = cl.r0[s * 3 + 2];
+        const gx = cxm + R[0] * bx + R[1] * by + R[2] * bz;
+        const gy = cym + R[3] * bx + R[4] * by + R[5] * bz;
+        const gz = czm + R[6] * bx + R[7] * by + R[8] * bz;
+        const ddx = gx - p[k], ddy = gy - p[k + 1], ddz = gz - p[k + 2];
+        const dl = Math.hypot(ddx, ddy, ddz);
+        if (dl < 1e-9) continue;
+        let st = st0;
+        if (st * dl > PHYS.maxCorr) st = PHYS.maxCorr / dl;
+        p[k] += ddx * st; p[k + 1] += ddy * st; p[k + 2] += ddz * st;
+      }
+    }
+  }
+
+  solveVolume() {
+    const p = this.p, gb = this.grab;
+    let cxm = 0, cym = 0, czm = 0, tm = 0;
+    for (let i = 0; i < NP; i++) { const k = i * 3; cxm += p[k] * MASS[i]; cym += p[k + 1] * MASS[i]; czm += p[k + 2] * MASS[i]; tm += MASS[i]; }
+    cxm /= tm; cym /= tm; czm /= tm;
+    this.com[0] = cxm; this.com[1] = cym; this.com[2] = czm;
+    const A = this.Ag;
+    A[0] = A[1] = A[2] = A[3] = A[4] = A[5] = A[6] = A[7] = A[8] = 0;
+    for (let i = 0; i < NP; i++) {
+      const k = i * 3, m = MASS[i];
+      const ax = p[k] - cxm, ay = p[k + 1] - cym, az = p[k + 2] - czm;
+      const bx = REST[k] - REST_COM.x, by = REST[k + 1] - REST_COM.y, bz = REST[k + 2] - REST_COM.z;
+      A[0] += m * ax * bx; A[1] += m * ax * by; A[2] += m * ax * bz;
+      A[3] += m * ay * bx; A[4] += m * ay * by; A[5] += m * ay * bz;
+      A[6] += m * az * bx; A[7] += m * az * by; A[8] += m * az * bz;
+    }
+    for (let q = 0; q < 9; q++) A[q] /= tm;   // mass-normalised, matches REST_COV
+    const det = A[0] * (A[4] * A[8] - A[5] * A[7]) - A[1] * (A[3] * A[8] - A[5] * A[6]) + A[2] * (A[3] * A[7] - A[4] * A[6]);
+    const ratio = DET_REST_COV / (det || 1e-9);
+    const s = clamp(Math.cbrt(ratio > 0 ? ratio : 1), 0.86, 1.16);
+    const f = 1 + PHYS.volBeta * (s - 1);
+    if (!isFinite(f) || Math.abs(f - 1) < 1e-4) return;
+    // geometric projection: no energy injected (pp travels with p).
+    // points resting on the table are left alone — otherwise the lateral part of
+    // the projection would slowly creep the whole bear across the floor.
+    for (let i = 0; i < NP; i++) {
+      if (i === gb) continue;
+      if (p[i * 3 + 1] <= FLOOR_R[i] + 0.0025) continue;
+      const k = i * 3;
+      const dx = (p[k] - cxm) * (f - 1), dy = (p[k + 1] - cym) * (f - 1), dz = (p[k + 2] - czm) * (f - 1);
+      p[k] += dx; p[k + 1] += dy; p[k + 2] += dz;
+      this.pp[k] += dx; this.pp[k + 1] += dy; this.pp[k + 2] += dz;
+    }
+  }
+
+  solveFloor(dt) {
+    const p = this.p, pp = this.pp;
+    for (let i = 0; i < NP; i++) {
+      if (i === this.grab) continue;
+      const k = i * 3, r = FLOOR_R[i];
+      if (p[k + 1] < r) {
+        const vy = (p[k + 1] - pp[k + 1]) / dt;
+        p[k + 1] = r;
+        // restitution + friction, written back through pp
+        let nvy = -vy * PHYS.restitution;
+        if (vy < -0.45) {
+          if (this.bounceCool <= 0) { STATS.bounces++; this.bounceCool = 0.22; }
+          if (nvy < 0.35) nvy = vy * -0.35;
+        } else {
+          nvy = 0;
+        }
+        pp[k + 1] = p[k + 1] - nvy * dt;
+        const fr = 1 - PHYS.friction;
+        pp[k] += (p[k] - pp[k]) * (1 - fr) * 0 + 0;
+        // tangential friction
+        pp[k] = p[k] - (p[k] - pp[k]) * fr;
+        pp[k + 2] = p[k + 2] - (p[k + 2] - pp[k + 2]) * fr;
+      }
+      // soft table edges
+      const lim = TABLE_X - 0.0;
+      if (p[k] > lim) { p[k] = lerp(p[k], lim, 0.5); pp[k] = p[k] - (p[k] - pp[k]) * 0.8; }
+      if (p[k] < -lim) { p[k] = lerp(p[k], -lim, 0.5); pp[k] = p[k] - (p[k] - pp[k]) * 0.8; }
+      const limz = TABLE_Z;
+      if (p[k + 2] > limz) { p[k + 2] = lerp(p[k + 2], limz, 0.5); pp[k + 2] = p[k + 2] - (p[k + 2] - pp[k + 2]) * 0.8; }
+      if (p[k + 2] < -limz) { p[k + 2] = lerp(p[k + 2], -limz, 0.5); pp[k + 2] = p[k + 2] - (p[k + 2] - pp[k + 2]) * 0.8; }
+    }
+  }
+
+  finalizeVel(h) {
+    const p = this.p, pp = this.pp, v = this.v;
+    const mv = PHYS.maxVel;
+    for (let i = 0; i < NP; i++) {
+      const k = i * 3;
+      let vx = (p[k] - pp[k]) / h, vy = (p[k + 1] - pp[k + 1]) / h, vz = (p[k + 2] - pp[k + 2]) / h;
+      const sp = vx * vx + vy * vy + vz * vz;
+      if (sp > mv * mv) { const f = mv / Math.sqrt(sp); vx *= f; vy *= f; vz *= f; }
+      v[k] = vx; v[k + 1] = vy; v[k + 2] = vz;
+    }
+  }
+
+  postFrame(dt) {
+    const p = this.p, v = this.v;
+    let maxSp = 0, sumY = 0;
+    for (let i = 0; i < NP; i++) {
+      const k = i * 3;
+      const s = v[k] * v[k] + v[k + 1] * v[k + 1] + v[k + 2] * v[k + 2];
+      if (s > maxSp) maxSp = s;
+      sumY += p[k + 1];
+    }
+    this.speed = Math.sqrt(maxSp);
+    this.avgY = sumY / NP;
+    if (this.bounceCool > 0) this.bounceCool -= dt;
+    this.grabbedNow = this.grab >= 0;
+
+    // ---- idle behaviour: small random hops
+    const onGround = this.avgY < 0.62;
+    if (!this.grabbedNow && this.speed < 0.12 && onGround) {
+      this.calmTimer += dt;
+      if (this.calmTimer > 0.4) {
+        this.hopTimer -= dt;
+        if (this.hopTimer <= 0) { this.hop(); this.hopTimer = rnd(2.2, 5.5) * lerp(1.5, 0.7, PHYS.wobble); }
+      }
+    } else { this.calmTimer = 0; }
+
+    // ---- sanity
+    if (!isFinite(this.com[1]) || this.com[1] < -3) {
+      this.place(rnd(-0.8, 0.8), rnd(-0.6, 0.6), Math.random() * Math.PI * 2, 1.4);
+    }
+  }
+
+  hop() {
+    const p = this.p, v = this.v;
+    const c = this.com;
+    // squash + push
+    for (let i = 0; i < NP; i++) {
+      const k = i * 3;
+      p[k] = c[0] + (p[k] - c[0]) * 1.07;
+      p[k + 1] = c[1] + (p[k + 1] - c[1]) * 0.86;
+      p[k + 2] = c[2] + (p[k + 2] - c[2]) * 1.07;
+      v[k] += rnd(-0.25, 0.25);
+      v[k + 1] += rnd(1.15, 1.95);
+      v[k + 2] += rnd(-0.25, 0.25);
+    }
+  }
+
+  /* -------------------------------------------------------------- transforms */
+  updateFrames() {
+    // global affine fit -> rotation + stretch
+    const p = this.p, c = this.com;
+    const A = this.Ag;
+    const F = _m;
+    // F = A * inv(cov0)
+    for (let r = 0; r < 3; r++) for (let cc = 0; cc < 3; cc++)
+      F[r * 3 + cc] = A[r * 3] * REST_COV_INV[cc] + A[r * 3 + 1] * REST_COV_INV[3 + cc] + A[r * 3 + 2] * REST_COV_INV[6 + cc];
+    const Rf = polar(F, this.Rg);
+    // symmetric stretch S = Rf^T F
+    const S = this.S;
+    for (let r = 0; r < 3; r++) for (let cc = 0; cc < 3; cc++)
+      S[r * 3 + cc] = Rf[0 * 3 + r] * F[0 * 3 + cc] + Rf[1 * 3 + r] * F[1 * 3 + cc] + Rf[2 * 3 + r] * F[2 * 3 + cc];
+    const det = S[0] * (S[4] * S[8] - S[5] * S[7]) - S[1] * (S[3] * S[8] - S[5] * S[6]) + S[2] * (S[3] * S[7] - S[4] * S[6]);
+    let sc = 1;
+    if (det > 1e-8) sc = Math.pow(det, -1 / 3);
+    sc = clamp(sc, 0.55, 1.8);
+    for (let i = 0; i < 9; i++) S[i] = S[i] * sc;
+    // tame the global stretch a little & keep it near identity when things go wild
+    for (let i = 0; i < 9; i++) S[i] = (i % 4 === 0 ? 1 : 0) + (S[i] - (i % 4 === 0 ? 1 : 0)) * 0.75;
+    for (let i = 0; i < 9; i++) { if (!isFinite(S[i])) S[i] = (i % 4 === 0) ? 1 : 0; }
+    // inverse
+    const Si = this.Sinv;
+    const dt2 = S[0] * (S[4] * S[8] - S[5] * S[7]) - S[1] * (S[3] * S[8] - S[5] * S[6]) + S[2] * (S[3] * S[7] - S[4] * S[6]);
+    if (Math.abs(dt2) > 1e-9) {
+      const id = 1 / dt2;
+      Si[0] = (S[4] * S[8] - S[5] * S[7]) * id; Si[1] = -(S[1] * S[8] - S[2] * S[7]) * id; Si[2] = (S[1] * S[5] - S[2] * S[4]) * id;
+      Si[3] = -(S[3] * S[8] - S[5] * S[6]) * id; Si[4] = (S[0] * S[8] - S[2] * S[6]) * id; Si[5] = -(S[0] * S[5] - S[2] * S[3]) * id;
+      Si[6] = (S[3] * S[7] - S[4] * S[6]) * id; Si[7] = -(S[0] * S[7] - S[1] * S[6]) * id; Si[8] = (S[0] * S[4] - S[1] * S[3]) * id;
+    } else { Si[0] = Si[4] = Si[8] = 1; Si[1] = Si[2] = Si[3] = Si[5] = Si[6] = Si[7] = 0; }
+
+    // per-bone local rotations
+    const tmp = _tmpR, tmpRl = _tmpRN;
+    const nb = NBR_W;
+    for (let i = 0; i < NP; i++) {
+      const R = this.boneR[i], RN = this.boneN[i];
+      if (HEAD_BONES.indexOf(i) >= 0) {
+        const h = this.boneR[0], hn = this.boneN[0];
+        for (let q = 0; q < 9; q++) { R[q] = h[q]; RN[q] = hn[q]; }
+        continue;
+      }
+      const k = i * 3;
+      let a0 = 0, a1 = 0, a2 = 0, a3 = 0, a4 = 0, a5 = 0, a6 = 0, a7 = 0, a8 = 0;
+      const row = i * NP;
+      for (let j = 0; j < NP; j++) {
+        if (j === i) continue;
+        const w = nb[row + j];
+        if (w < 1e-5) continue;
+        const kj = j * 3;
+        const ax = p[kj] - p[k], ay = p[kj + 1] - p[k + 1], az = p[kj + 2] - p[k + 2];
+        const bx = REST[kj] - REST[k], by = REST[kj + 1] - REST[k + 1], bz = REST[kj + 2] - REST[k + 2];
+        a0 += w * ax * bx; a1 += w * ax * by; a2 += w * ax * bz;
+        a3 += w * ay * bx; a4 += w * ay * by; a5 += w * ay * bz;
+        a6 += w * az * bx; a7 += w * az * by; a8 += w * az * bz;
+      }
+      const tr = (a0 + a4 + a8) / 3;
+      const pr = Math.abs(tr) * 0.30 + 1e-6;
+      tmp[0] = a0 + pr * Rf[0]; tmp[1] = a1 + pr * Rf[1]; tmp[2] = a2 + pr * Rf[2];
+      tmp[3] = a3 + pr * Rf[3]; tmp[4] = a4 + pr * Rf[4]; tmp[5] = a5 + pr * Rf[5];
+      tmp[6] = a6 + pr * Rf[6]; tmp[7] = a7 + pr * Rf[7]; tmp[8] = a8 + pr * Rf[8];
+      polar(tmp, tmpRl);
+      // the *normals* keep the local orientation (that is what makes a stretched
+      // limb read as round) ...
+      for (let q2 = 0; q2 < 9; q2++) tmp[q2] = tmpRl[q2] * 0.80 + Rf[q2] * 0.20;
+      polar(tmp, RN);
+      // ... but the *positions* are pulled hard toward the global frame, because a
+      // large relative rotation is exactly what folds a linearly-skinned limb
+      for (let q2 = 0; q2 < 9; q2++) tmp[q2] = tmpRl[q2] * 0.18 + Rf[q2] * 0.82;
+      polar(tmp, R);
+    }
+
+    // readouts
+    let ms = 1;
+    for (let e = 0; e < NE; e++) {
+      const a = EDGES[e][0], b = EDGES[e][1];
+      const d = Math.hypot(p[b * 3] - p[a * 3], p[b * 3 + 1] - p[a * 3 + 1], p[b * 3 + 2] - p[a * 3 + 2]);
+      const r = d / EDGE_REST[e];
+      if (r > ms) ms = r;
+    }
+    this.stretch = ms;
+  }
+
+  /* ---------------------------------------------------------------- drawing */
+  writeSkin() {
+    const out = this.posAttr.array, nout = this.nrmAttr.array;
+    const si = SKIN.wIdx, sv = SKIN.wVal, rp = SKIN.pos, rn = SKIN.nrm, WC = SKIN.WC;
+    const Si = this.Sinv, p = this.p;
+    for (let v = 0; v < SKIN.nv; v++) {
+      let px = 0, py = 0, pz = 0, nx = 0, ny = 0, nz = 0;
+      const nx0 = rn[v * 3], ny0 = rn[v * 3 + 1], nz0 = rn[v * 3 + 2];
+      // stretch-inverse first (shared by all bones of this vertex)
+      const sx = Si[0] * nx0 + Si[1] * ny0 + Si[2] * nz0;
+      const sy = Si[3] * nx0 + Si[4] * ny0 + Si[5] * nz0;
+      const sz = Si[6] * nx0 + Si[7] * ny0 + Si[8] * nz0;
+      for (let s = 0; s < WC; s++) {
+        const w = sv[v * WC + s];
+        if (w <= 0) continue;
+        const j = si[v * WC + s], R = this.boneR[j], RN2 = this.boneN[j], k = j * 3;
+        const dx = rp[v * 3] - REST[k], dy = rp[v * 3 + 1] - REST[k + 1], dz = rp[v * 3 + 2] - REST[k + 2];
+        px += w * (R[0] * dx + R[1] * dy + R[2] * dz + p[k]);
+        py += w * (R[3] * dx + R[4] * dy + R[5] * dz + p[k + 1]);
+        pz += w * (R[6] * dx + R[7] * dy + R[8] * dz + p[k + 2]);
+        nx += w * (RN2[0] * sx + RN2[1] * sy + RN2[2] * sz);
+        ny += w * (RN2[3] * sx + RN2[4] * sy + RN2[5] * sz);
+        nz += w * (RN2[6] * sx + RN2[7] * sy + RN2[8] * sz);
+      }
+      const nl = Math.hypot(nx, ny, nz) || 1;
+      out[v * 3] = px; out[v * 3 + 1] = py; out[v * 3 + 2] = pz;
+      nout[v * 3] = nx / nl; nout[v * 3 + 1] = ny / nl; nout[v * 3 + 2] = nz / nl;
+    }
+    this.posAttr.needsUpdate = true;
+    this.nrmAttr.needsUpdate = true;
+    this.geo.boundingSphere = null;
+  }
+
+  writeStrands() {
+    const pos = this.spos.array, nrm = this.snrm.array;
+    const p = this.p;
+    let vis = 0;
+    for (let s = 0; s < STRANDS.length; s++) {
+      const st = STRANDS[s];
+      const ka = st.a * 3, kb = st.b * 3;
+      let ax = p[kb] - p[ka], ay = p[kb + 1] - p[ka + 1], az = p[kb + 2] - p[ka + 2];
+      const len = Math.hypot(ax, ay, az) || 1e-5;
+      ax /= len; ay /= len; az /= len;
+      const rest = Math.hypot(REST[kb] - REST[ka], REST[kb + 1] - REST[ka + 1], REST[kb + 2] - REST[ka + 2]);
+      const stretch = len / rest;
+      const f = smoothstep(1.05, 1.30, stretch);
+      if (f > vis) vis = f;
+      let r = st.r * Math.pow(f, 0.7) * clamp(Math.pow(rest / len, 0.30), 0.55, 1.0);
+      // keep it thin when the whole bear is stretched
+      r *= 1 / (1 + 0.30 * Math.max(0, this.stretch - 1));
+      if (r < 1e-4) r = 1e-4;
+      // frame
+      let ux, uy, uz;
+      if (Math.abs(ay) < 0.9) { ux = 0; uy = 1; uz = 0; } else { ux = 1; uy = 0; uz = 0; }
+      let wx = ay * uz - az * uy, wy = az * ux - ax * uz, wz = ax * uy - ay * ux;
+      let wl = Math.hypot(wx, wy, wz) || 1; wx /= wl; wy /= wl; wz /= wl;
+      const vx = ay * wz - az * wy, vy = az * wx - ax * wz, vz = ax * wy - ay * wx;
+      const base = s * STRAND_SEG;
+      for (let l = 0; l <= STRAND_LEN; l++) {
+        const t = l / STRAND_LEN;
+        const cx = p[ka] + (p[kb] - p[ka]) * t;
+        const cy = p[ka + 1] + (p[kb + 1] - p[ka + 1]) * t;
+        const cz = p[ka + 2] + (p[kb + 2] - p[ka + 2]) * t;
+        const rr = r * (0.82 + 0.18 * Math.sin(Math.PI * t));
+        for (let q = 0; q < STRAND_RAD; q++) {
+          const a = (q / STRAND_RAD) * Math.PI * 2;
+          const ca = Math.cos(a), sa = Math.sin(a);
+          const nxv = ca * wx + sa * vx, nyv = ca * wy + sa * vy, nzv = ca * wz + sa * vz;
+          const o = (base + l * STRAND_RAD + q) * 3;
+          pos[o] = cx + nxv * rr; pos[o + 1] = cy + nyv * rr; pos[o + 2] = cz + nzv * rr;
+          nrm[o] = nxv; nrm[o + 1] = nyv; nrm[o + 2] = nzv;
+        }
+      }
+    }
+    this.spos.needsUpdate = true;
+    this.snrm.needsUpdate = true;
+    this.svisible = vis > 0.02;
+    this.smesh.visible = this.svisible;
+  }
+
+  writeFace() {
+    const R = this.boneN[0], S = this.S, p = this.p;
+    const detS0 = S[0] * (S[4] * S[8] - S[5] * S[7]) - S[1] * (S[3] * S[8] - S[5] * S[6]) + S[2] * (S[3] * S[7] - S[4] * S[6]);
+    const m0 = R[0], m1 = R[1], m2 = R[2];
+    const m3 = R[3], m4 = R[4], m5 = R[5];
+    const m6 = R[6], m7 = R[7], m8 = R[8];
+    const anchors = [EYE_L, EYE_R, NOSE];
+    const radii = [BALL_R[0] * 0.112, BALL_R[0] * 0.112, BALL_R[3] * 0.285];
+    const sf = clamp(Math.cbrt(Math.abs(detS0) || 1), 0.8, 1.22);
+    for (let i = 0; i < 3; i++) {
+      const a = anchors[i];
+      const dx = a[0] - REST[0], dy = a[1] - REST[1], dz = a[2] - REST[2];
+      const m = this.eyes[i];
+      m.position.set(
+        p[0] + m0 * dx + m1 * dy + m2 * dz,
+        p[1] + m3 * dx + m4 * dy + m5 * dz,
+        p[2] + m6 * dx + m7 * dy + m8 * dz
+      );
+      const rr = radii[i] * sf;
+      m.scale.set(rr, rr, rr);
+      m.visible = this.alive;
+    }
+  }
+
+  writeShadow() {
+    const p = this.p, c = this.com;
+    let ex = 0, ez = 0;
+    for (let i = 0; i < NP; i++) {
+      ex = Math.max(ex, Math.abs(p[i * 3] - c[0]));
+      ez = Math.max(ez, Math.abs(p[i * 3 + 2] - c[2]));
+    }
+    const sx = ex + 0.19, sz = ez + 0.17;
+    this.shadow.position.set(c[0], 0.004, c[2]);
+    this.shadow.scale.set(sx * 1.16, sz * 1.16, 1);
+    const h = Math.max(0, c[1] - REST_COM.y);
+    const hf = 1 - smoothstep(0.02, 1.35, h);
+    this.shadowMat.opacity = 0.70 * hf * clamp(sx / 0.36, 0.55, 1.3);
+    this.shadow.visible = hf > 0.02;
+  }
+
+  /* ------------------------------------------------------------------ update */
+  substep(h) {
+    this.integrate(h);
+    for (let it = 0; it < PHYS.iters; it++) this.solveEdges();
+    this.solveClusters();
+    this.solveVolume();
+    this.solveFloor(h);
+    this.finalizeVel(h);
+  }
+
+  render() {
+    this.updateFrames();
+    this.writeSkin();
+    this.writeStrands();
+    this.writeFace();
+    this.writeShadow();
+    // absorption tracks volume: squashed candy is thinner
+    const detS = this.S[0] * (this.S[4] * this.S[8] - this.S[5] * this.S[7]) - this.S[1] * (this.S[3] * this.S[8] - this.S[5] * this.S[6]) + this.S[2] * (this.S[3] * this.S[7] - this.S[4] * this.S[6]);
+    this.mat.thickness = 0.36 * clamp(Math.cbrt(Math.abs(detS) || 1), 0.75, 1.3);
+  }
+
+  dispose() {
+    scene.remove(this.mesh); scene.remove(this.smesh); scene.remove(this.shadow);
+    for (const e of this.eyes) scene.remove(e);
+    this.geo.dispose(); this.sgeo.dispose(); this.shadowMat.dispose(); this.mat.dispose(); this.strandMat.dispose();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   bear ↔ bear collisions
+   ══════════════════════════════════════════════════════════════════════════ */
+function collidePairs(h) {
+  const n = ALL.length;
+  for (let a = 0; a < n; a++) {
+    const A = ALL[a], pa = A.p;
+    const Aactive = [];
+    for (let b = a + 1; b < n; b++) {
+      const B = ALL[b], pb = B.p;
+      const cdx = A.com[0] - B.com[0], cdy = A.com[1] - B.com[1], cdz = A.com[2] - B.com[2];
+      if (cdx * cdx + cdy * cdy + cdz * cdz > 1.45 * 1.45) continue;
+      for (let i = 0; i < NP; i++) {
+        const ia = i * 3, ra = COLL_R[i];
+        const wa = i === A.grab ? 0 : INV_MASS[i];
+        for (let j = 0; j < NP; j++) {
+          const jb = j * 3;
+          const rr = ra + COLL_R[j];
+          let nx = pb[jb] - pa[ia], ny = pb[jb + 1] - pa[ia + 1], nz = pb[jb + 2] - pa[ia + 2];
+          const d2 = nx * nx + ny * ny + nz * nz;
+          if (d2 >= rr * rr || d2 < 1e-10) continue;
+          const wb = j === B.grab ? 0 : INV_MASS[j];
+          const ws = wa + wb;
+          if (ws <= 0) continue;
+          const d = Math.sqrt(d2); nx /= d; ny /= d; nz /= d;
+          const pen = rr - d;
+          const fa = (pen * wa) / ws, fb = (pen * wb) / ws;
+          if (wa) { pa[ia] -= nx * fa; pa[ia + 1] -= ny * fa; pa[ia + 2] -= nz * fa; }
+          if (wb) { pb[jb] += nx * fb; pb[jb + 1] += ny * fb; pb[jb + 2] += nz * fb; }
+          // a little restitution so piles jostle instead of welding
+          const rvx = (pb[jb] - B.pp[jb]) / h - (pa[ia] - A.pp[ia]) / h;
+          const rvy = (pb[jb + 1] - B.pp[jb + 1]) / h - (pa[ia + 1] - A.pp[ia + 1]) / h;
+          const rvz = (pb[jb + 2] - B.pp[jb + 2]) / h - (pa[ia + 2] - A.pp[ia + 2]) / h;
+          const vn = rvx * nx + rvy * ny + rvz * nz;
+          if (vn < 0) {
+            const jm = (-(1 + 0.2) * vn) / ws;
+            if (wa) { A.pp[ia] -= nx * jm * wa * h; A.pp[ia + 1] -= ny * jm * wa * h; A.pp[ia + 2] -= nz * jm * wa * h; }
+            if (wb) { B.pp[jb] += nx * jm * wb * h; B.pp[jb + 1] += ny * jm * wb * h; B.pp[jb + 2] += nz * jm * wb * h; }
+          }
+        }
+      }
+    }
+  }
+}
+
+const FIXED_DT = 1 / 120;
+function physicsStep(dt) {
+  const n = PHYS.substeps, h = dt / n;
+  for (let s = 0; s < n; s++) {
+    for (let i = 0; i < ALL.length; i++) ALL[i].substep(h);
+    collidePairs(h);
+  }
+  for (let i = 0; i < ALL.length; i++) ALL[i].postFrame(dt);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   pointer interaction — grab, stretch, throw
+   ══════════════════════════════════════════════════════════════════════════ */
+const STATS = { bounces: 0, stretch: 1 };
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2(-2, -2);
+const dragPlane = new THREE.Plane();
+const hitVec = new THREE.Vector3();
+const planeHit = new THREE.Vector3();
+const camDir = new THREE.Vector3();
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3();
+let held = null, heldBone = -1, dragging = false;
+const pointerScreen = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
+const cursorPos = { x: pointerScreen.x, y: pointerScreen.y };
+const cur = document.getElementById('cur');
+
+function setNDC(x, y) {
+  ndc.x = (x / window.innerWidth) * 2 - 1;
+  ndc.y = -(y / window.innerHeight) * 2 + 1;
+}
+
+function pickBear(x, y) {
+  setNDC(x, y);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(ALL.map(b => b.mesh), false);
+  if (hits.length) {
+    const hit = hits[0];
+    const bear = ALL.find(b => b.mesh === hit.object);
+    if (bear) { hitVec.copy(hit.point); return { bear, point: hitVec }; }
+  }
+  let best = null, bestD = 0.22;
+  for (const b of ALL) {
+    for (let i = 0; i < NP; i++) {
+      _v1.set(b.p[i * 3], b.p[i * 3 + 1], b.p[i * 3 + 2]);
+      const t = _v1.clone().sub(ray.ray.origin).dot(ray.ray.direction);
+      if (t < 0) continue;
+      _v2.copy(ray.ray.origin).addScaledVector(ray.ray.direction, t);
+      const d = _v2.distanceTo(_v1) - COLL_R[i];
+      if (d < bestD) { bestD = d; best = { bear: b, point: _v1.clone() }; }
+    }
+  }
+  return best;
+}
+
+function nearestBone(bear, point) {
+  let bi = 0, bd = 1e9;
+  for (let i = 0; i < NP; i++) {
+    const d = (bear.p[i * 3] - point.x) ** 2 + (bear.p[i * 3 + 1] - point.y) ** 2 + (bear.p[i * 3 + 2] - point.z) ** 2;
+    const w = d / (COLL_R[i] * COLL_R[i] + 0.012);
+    if (w < bd) { bd = w; bi = i; }
+  }
+  return bi;
+}
+
+function startGrab(x, y) {
+  const p = pickBear(x, y);
+  if (!p) return false;
+  held = p.bear;
+  heldBone = nearestBone(held, p.point);
+  held.grab = heldBone;
+  held.squashSeen = 0;
+  camera.getWorldDirection(camDir);
+  dragPlane.setFromNormalAndCoplanarPoint(camDir, p.point);
+  setNDC(x, y);
+  ray.setFromCamera(ndc, camera);
+  if (ray.ray.intersectPlane(dragPlane, planeHit)) held.grabV.copy(planeHit);
+  else held.grabV.copy(p.point);
+  dragging = true;
+  cur.classList.add('grab');
+  return true;
+}
+
+function moveGrab(x, y) {
+  if (!dragging || !held) return;
+  setNDC(x, y);
+  ray.setFromCamera(ndc, camera);
+  if (ray.ray.intersectPlane(dragPlane, planeHit)) {
+    planeHit.x = clamp(planeHit.x, -TABLE_X + 0.06, TABLE_X - 0.06);
+    planeHit.z = clamp(planeHit.z, -TABLE_Z + 0.06, TABLE_Z - 0.06);
+    planeHit.y = Math.max(planeHit.y, -0.05);
+    held.grabV.copy(planeHit);
+  }
+}
+
+function endGrab() {
+  if (!dragging || !held) return;
+  const b = held, sq = clamp(b.squashSeen, 0, 1);
+  if (sq > 0.08) {
+    // a flattened bear pings back up — squash it and fire it skyward
+    const boost = 1.3 + 4.6 * sq * sq;
+    for (let i = 0; i < NP; i++) {
+      if (i === heldBone) continue;
+      const k = i * 3;
+      b.v[k + 1] += boost;
+      b.v[k] += b.v[k] * 0.12;
+      b.v[k + 2] += b.v[k + 2] * 0.12;
+      b.p[k] = b.com[0] + (b.p[k] - b.com[0]) * (1 + 0.12 * sq);
+      b.p[k + 1] = b.com[1] + (b.p[k + 1] - b.com[1]) * (1 - 0.24 * sq);
+      b.p[k + 2] = b.com[2] + (b.p[k + 2] - b.com[2]) * (1 + 0.12 * sq);
+    }
+  }
+  b.grab = -1;
+  b.hopTimer = rnd(2.0, 5.0);
+  b.calmTimer = 0;
+  held = null; heldBone = -1; dragging = false;
+  cur.classList.remove('grab');
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  canvas.setPointerCapture(e.pointerId);
+  pointerScreen.x = e.clientX; pointerScreen.y = e.clientY;
+  startGrab(e.clientX, e.clientY);
+});
+canvas.addEventListener('pointermove', (e) => {
+  pointerScreen.x = e.clientX; pointerScreen.y = e.clientY;
+  if (dragging) moveGrab(e.clientX, e.clientY);
+});
+canvas.addEventListener('pointerup', () => endGrab());
+canvas.addEventListener('pointercancel', () => endGrab());
+window.addEventListener('blur', () => endGrab());
+window.addEventListener('pointermove', (e) => { pointerScreen.x = e.clientX; pointerScreen.y = e.clientY; });
+window.addEventListener('pointerleave', () => cur.classList.remove('on'));
+window.addEventListener('pointerenter', () => cur.classList.add('on'));
+cur.classList.add('on');
+
+/* ══════════════════════════════════════════════════════════════════════════
+   controls
+   ══════════════════════════════════════════════════════════════════════════ */
+let selected = 0;
+const swWrap = document.getElementById('swatches');
+const selName = document.getElementById('selName');
+FLAVORS.forEach((f, i) => {
+  const b = document.createElement('button');
+  b.className = 'sw' + (i === 0 ? ' on' : '');
+  b.title = f.name;
+  b.setAttribute('aria-label', f.name);
+  b.innerHTML = '<span class="glow" style="background:radial-gradient(circle,' + f.ui + '55,transparent 70%)"></span>' +
+                '<i style="background:radial-gradient(120% 120% at 32% 26%, #fff9, ' + f.ui + ' 62%, ' + f.ui + 'dd)"></i>';
+  b.addEventListener('click', () => {
+    selected = i;
+    [...swWrap.children].forEach((c, k) => c.classList.toggle('on', k === i));
+    selName.textContent = f.name;
+  });
+  swWrap.appendChild(b);
+});
+
+const wob = document.getElementById('wob');
+const wobVal = document.getElementById('wobVal');
+wob.addEventListener('input', () => {
+  const w = parseFloat(wob.value);
+  wobVal.textContent = w.toFixed(2);
+  tunePhysics(w);
+});
+
+const MAX_BEARS = 18;
+function pourBears(count, flavor) {
+  count = count || 5;
+  flavor = (flavor === undefined) ? selected : flavor;
+  for (let i = 0; i < count; i++) {
+    if (ALL.length >= MAX_BEARS) { const old = ALL.shift(); if (old !== held) old.dispose(); }
+    const ang = rnd(0, Math.PI * 2), rad = rnd(0, 0.34);
+    const b = new Bear(flavor, Math.cos(ang) * rad, Math.sin(ang) * rad - 0.08, {
+      y: rnd(1.8, 3.0), rot: rnd(0, Math.PI * 2), vel: true,
+    });
+    for (let k = 0; k < NP; k++) b.v[k * 3 + 1] += rnd(-1.2, -0.2);
+  }
+}
+document.getElementById('pour').addEventListener('click', () => pourBears(Math.round(rnd(4, 7))));
+
+const elStretch = document.getElementById('stretch');
+const elBounces = document.getElementById('bounces');
+
+/* ══════════════════════════════════════════════════════════════════════════
+   optional headless-test hooks (never used in normal play)
+   ══════════════════════════════════════════════════════════════════════════ */
+const QS = new URLSearchParams(location.search);
+const SIM0 = parseInt(QS.get('sim') || '0', 10);
+const HOLD = QS.get('hold');
+const PULL = parseFloat(QS.get('pull') || '1.3');
+let simmed = false;
+function testHold(t) {
+  if (!HOLD || !ALL.length) return;
+  const b = ALL[0];
+  if (t >= 0.68) { if (b.grab >= 0) b.grab = -1; return; }
+  const k = t / 0.68;
+  if (HOLD === 'body') { b.grab = 5; b.grabV.set(0, REST[16] + 0.02 - 0.20 * k, 0); }
+  else if (HOLD === 'head') { b.grab = 0; b.grabV.set(0, REST[1] + 0.02 + PULL * k, 0); }
+  else if (HOLD === 'hand') { b.grab = 9; b.grabV.set(-0.26 - 0.50 * k, REST[10] + 0.02 + 0.26 * k, 0.12); }
+  else if (HOLD === 'arm') { b.grab = 10; b.grabV.set(0.26 + 0.50 * k, REST[13] + 0.02 + 0.30 * k, 0.12); }
+  else if (HOLD === 'press') { b.grab = 0; b.grabV.set(0, COLL_R[0] + 0.02 - 0.26 * k, 0); }
+  else if (HOLD === 'throw') { b.grab = 5; b.grabV.set(-1.5 * k, REST[16] + 0.9 * k, 0.25 * k); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   opening scene
+   ══════════════════════════════════════════════════════════════════════════ */
+const OPENING = [
+  [3, -1.02, -0.22], [0, -0.50, -0.44], [1, 0.06, -0.28],
+  [4, -0.84, 0.38], [2, -0.30, 0.54], [0, 0.36, 0.32],
+];
+if (QS.has('solo')) new Bear(0, 0, 0, { rot: 0.2, y: 0.02 });
+else if (QS.has('two')) { new Bear(0, -0.22, 0.08, { rot: 0.2, y: 0.02 }); new Bear(2, 0.42, -0.18, { rot: -0.4, y: 0.02 }); }
+else OPENING.forEach((p, i) => new Bear(p[0], p[1], p[2], { rot: rnd(-0.4, 0.4) + (i < 3 ? 0.12 : -0.1), y: 0.02 }));
+
+/* ══════════════════════════════════════════════════════════════════════════
+   loop
+   ══════════════════════════════════════════════════════════════════════════ */
+let acc = 0, last = performance.now(), frames = 0, uiTick = 0;
+
+function resize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+}
+window.addEventListener('resize', resize);
+resize();
+
+const mouseNorm = { x: 0, y: 0 };
+const camPos = new THREE.Vector3().copy(camHome);
+const camAim = new THREE.Vector3().copy(camTarget);
+
+function tick(now) {
+  let dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.25) dt = 0.25;
+  if (dt < 0) dt = 0;
+
+  if (QS.has('nofiz')) { renderer.render(scene, camera); frames++; window.__frames = frames; return; }
+
+  const ONESTEP = parseInt(QS.get('one') || '0', 10);
+  if (ONESTEP && !simmed) { for (let i = 0; i < ONESTEP; i++) physicsStep(FIXED_DT); simmed = true; }
+  if (SIM0 && !simmed) {
+    for (let i = 0; i < SIM0; i++) { testHold(i / SIM0); physicsStep(FIXED_DT); }
+    simmed = true;
+  }
+
+  // fixed-step physics — a slow frame never blows the solver up
+  acc += dt;
+  let steps = 0;
+  while (acc >= FIXED_DT && steps < 8) { physicsStep(FIXED_DT); acc -= FIXED_DT; steps++; }
+  if (steps >= 8) acc = 0;
+
+  if (dragging && held) {
+    const sq = clamp(1 - (held.com[1] / REST_COM.y), 0, 0.9);
+    if (sq > held.squashSeen) held.squashSeen = sq;
+  }
+
+  let maxStretch = 1;
+  for (const b of ALL) {
+    b.render();
+    if (b.stretch > maxStretch) maxStretch = b.stretch;
+  }
+  STATS.stretch = maxStretch;
+
+  // gentle camera drift with the pointer, framed to suit the viewport shape
+  mouseNorm.x = lerp(mouseNorm.x, (pointerScreen.x / window.innerWidth) * 2 - 1, 0.045);
+  mouseNorm.y = lerp(mouseNorm.y, (pointerScreen.y / window.innerHeight) * 2 - 1, 0.045);
+  const k = clamp(1.5 / Math.max(0.35, window.innerWidth / window.innerHeight), 1, 2.05);
+  camPos.set(camHome.x + mouseNorm.x * 0.15, camHome.y * k - mouseNorm.y * 0.08 * k, camHome.z * k);
+  camAim.set(camTarget.x - mouseNorm.x * 0.02, camTarget.y - (k - 1) * 0.30, camTarget.z);
+  camera.position.lerp(camPos, 0.1);
+  camera.lookAt(camAim);
+
+  cursorPos.x = lerp(cursorPos.x, pointerScreen.x, 0.3);
+  cursorPos.y = lerp(cursorPos.y, pointerScreen.y, 0.3);
+  cur.style.transform = 'translate(' + cursorPos.x.toFixed(1) + 'px,' + cursorPos.y.toFixed(1) + 'px)';
+
+  uiTick++;
+  if (uiTick % 5 === 0) {
+    elStretch.textContent = STATS.stretch.toFixed(2) + '×';
+    elBounces.textContent = String(STATS.bounces);
+  }
+
+  renderer.render(scene, camera);
+  frames++;
+  window.__frames = frames;
+}
+
+/* ---- diagnostics (used by the headless test harness) --------------------- */
+window.__debug = () => {
+  let maxPt = 0, maxR = 0, maxVert = 0, maxStretch = 1;
+  for (const b of ALL) {
+    const c = b.com;
+    for (let i = 0; i < NP; i++) {
+      maxPt = Math.max(maxPt, Math.hypot(b.p[i * 3] - c[0], b.p[i * 3 + 1] - c[1], b.p[i * 3 + 2] - c[2]));
+      for (let q = 0; q < 9; q++) maxR = Math.max(maxR, Math.abs(b.boneR[i][q]));
+    }
+    const arr = b.posAttr.array, sk = SKIN.pos;
+    for (let v = 0; v < SKIN.nv; v += 7) {
+      maxVert = Math.max(maxVert, Math.hypot(arr[v * 3] - c[0], arr[v * 3 + 1] - c[1], arr[v * 3 + 2] - c[2]));
+    }
+    maxStretch = Math.max(maxStretch, b.stretch || 1);
+  }
+  return { bears: ALL.length, nv: SKIN.nv, maxPt: +maxPt.toFixed(3), maxR: +maxR.toFixed(3), maxVert: +maxVert.toFixed(3), maxStretch: +maxStretch.toFixed(3) };
+};
+window.__rotInfo = () => {
+  const b = ALL[0];
+  let maxd = 0;
+  for (let i = 0; i < NP; i++) {
+    const c = Math.cos(b.spawnRot), s = Math.sin(b.spawnRot), rx = REST[i * 3], rz = REST[i * 3 + 2];
+    maxd = Math.max(maxd, Math.hypot(b.p[i * 3] - (rx * c - rz * s), b.p[i * 3 + 1] - REST[i * 3 + 1], b.p[i * 3 + 2] - (rx * s + rz * c)));
+  }
+  return { spawnRot: +b.spawnRot.toFixed(3), R0ang: +Math.atan2(b.boneR[0][6], b.boneR[0][0]).toFixed(3),
+    maxDev: +maxd.toFixed(4), stretch: +b.stretch.toFixed(3), avgY: +b.avgY.toFixed(3), spd: +b.speed.toFixed(3) };
+};
+renderer.setAnimationLoop(tick);
+window.__ready = true;
+</script>
+</body>
+</html>

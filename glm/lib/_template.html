@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gummy Bears.</title>
+<style>
+  :root { --ink:#161513; --paper:#faf9f5; --mut:rgba(22,21,19,.62); }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; background:var(--paper);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; color:var(--ink); }
+  canvas { display:block; cursor:none; }
+  .serif { font-family:Georgia,"Times New Roman",serif; }
+
+  .masthead { position:fixed; top:4.5vh; left:4vw; z-index:5; pointer-events:none; user-select:none; }
+  .masthead h1 { margin:0; font-family:Georgia,"Times New Roman",serif; font-style:italic; font-weight:400;
+    font-size:clamp(64px,9.5vw,150px); line-height:.9; letter-spacing:-.035em; }
+  .masthead p { margin:18px 0 0 6px; max-width:36ch; font-size:13px; line-height:1.6; color:var(--mut); }
+  .masthead h1 .thin { font-weight:400; }
+
+  .card { position:fixed; right:3.2vw; top:50%; transform:translateY(-50%); z-index:5; width:300px;
+    background:rgba(255,255,255,.66); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(22,21,19,.16); padding:22px 22px 20px; }
+  .label { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--mut); margin-bottom:10px; }
+  .swatches { display:flex; gap:10px; margin-bottom:20px; }
+  .sw { width:26px; height:26px; border-radius:50%; border:none; padding:0; cursor:pointer;
+    outline:2px solid transparent; outline-offset:3px; transition:outline-color .15s, transform .15s; }
+  .sw:hover { transform:scale(1.1); }
+  .sw.sel { outline-color:var(--ink); }
+  hr { border:none; border-top:1px solid rgba(22,21,19,.12); margin:18px 0; }
+  .wobler { display:flex; justify-content:space-between; align-items:baseline; }
+  .wobler b { font-family:Georgia,serif; font-style:italic; font-weight:400; font-size:15px; }
+  input[type=range] { width:100%; accent-color:var(--ink); margin:4px 0 2px; height:18px; }
+  .stats { display:flex; gap:0; margin:6px 0 2px; }
+  .stat { flex:1; }
+  .stat .label { margin-bottom:4px; }
+  .stat .val { font-family:Georgia,serif; font-style:italic; font-size:26px; line-height:1; letter-spacing:-.01em; }
+  .stat + .stat { padding-left:14px; border-left:1px solid rgba(22,21,19,.12); }
+  .stat .val small { font-size:15px; }
+  #pour { margin-top:18px; width:100%; appearance:none; border:1px solid var(--ink); background:var(--ink);
+    color:var(--paper); font:600 12px/1 "Helvetica Neue",Helvetica,Arial,sans-serif; letter-spacing:.12em;
+    text-transform:uppercase; padding:14px 0 13px; cursor:pointer; transition:background .15s, transform .05s; }
+  #pour:hover { background:#3a3733; }
+  #pour:active { transform:translateY(1px); }
+
+  .hint { position:fixed; bottom:3.4vh; left:4vw; z-index:5; font-size:11px; letter-spacing:.05em;
+    color:var(--mut); user-select:none; pointer-events:none; }
+  .hint b { color:var(--ink); font-weight:600; }
+
+  #cursor { position:fixed; left:0; top:0; z-index:9; width:34px; height:34px; margin:-17px 0 0 -17px;
+    border:1.5px solid rgba(22,21,19,.85); border-radius:50%; pointer-events:none; opacity:.85; }
+  #cursor.grab { width:58px; height:58px; margin:-29px 0 0 -29px; transition:none; }
+  #cursor, #cursor.grab { transition:width .16s ease, height .16s ease, margin .16s ease, opacity .2s; }
+
+  @media (max-width:900px) {
+    .card { right:auto; left:4vw; top:auto; bottom:4vh; transform:none; width:min(300px, 92vw); }
+    .masthead h1 { font-size:clamp(56px,14vw,100px); }
+    .hint { display:none; }
+  }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Gummy<br>Bears.</h1>
+    <p>Soft-body jelly rendered as one melting surface. Grab any bear — stretch it, press it down,
+       fling it across the table and watch it wobble back into shape.</p>
+  </header>
+
+  <aside class="card">
+    <div class="label">Flavors</div>
+    <div class="swatches" id="swatches"></div>
+    <div class="wobler"><span class="label" style="margin:0">Wobble</span><b id="wobVal">55</b></div>
+    <input type="range" id="wobble" min="0" max="100" value="55">
+    <hr>
+    <div class="stats">
+      <div class="stat"><div class="label">Stretch</div><div class="val" id="stretch">1.00×</div></div>
+      <div class="stat"><div class="label">Bounces</div><div class="val" id="bounces">0</div></div>
+      <div class="stat"><div class="label">Bears</div><div class="val" id="nbears">5</div></div>
+    </div>
+    <hr>
+    <button id="pour">Pour more bears</button>
+  </aside>
+
+  <div class="hint"><b>drag</b> a bear &nbsp;·&nbsp; <b>right-drag</b> orbit &nbsp;·&nbsp; <b>scroll</b> zoom</div>
+  <div id="cursor"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+//__MC_CORE__
+
+/* ============================== scene =============================== */
+
+const PAPER = 0xf7f5f0;
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+renderer.domElement.style.touchAction = 'none';
+renderer.domElement.tabIndex = 0;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(PAPER);
+scene.fog = new THREE.Fog(PAPER, 9, 17);
+
+const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.1, 60);
+const camTarget = new THREE.Vector3(0, 0.55, 0);
+const camCtl = { yaw: 0.16, pitch: 0.52, dist: 7.6 };
+function placeCamera() {
+  const cp = Math.max(0.08, Math.min(1.35, camCtl.pitch));
+  camera.position.set(
+    camTarget.x + camCtl.dist * Math.sin(camCtl.yaw) * Math.cos(cp),
+    camTarget.y + camCtl.dist * Math.sin(cp),
+    camTarget.z + camCtl.dist * Math.cos(camCtl.yaw) * Math.cos(cp));
+  camera.lookAt(camTarget);
+}
+placeCamera();
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xcdc9c2, 0.75));
+
+const key = new THREE.DirectionalLight(0xffffff, 2.4);
+key.position.set(4.5, 7.5, 3.5);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -7; key.shadow.camera.right = 7;
+key.shadow.camera.top = 7;   key.shadow.camera.bottom = -7;
+key.shadow.camera.near = 1;  key.shadow.camera.far = 24;
+key.shadow.bias = -0.0002; key.shadow.normalBias = 0.03; key.shadow.radius = 5;
+scene.add(key);
+
+const back = new THREE.DirectionalLight(0xe4ecff, 1.9);
+back.position.set(-3, 5, -6);
+scene.add(back);
+
+const table = new THREE.Mesh(
+  new THREE.CircleGeometry(9, 72),
+  new THREE.MeshStandardMaterial({ color: 0xf1eee8, roughness: 0.42, metalness: 0, envMapIntensity: 0.5 }));
+table.rotation.x = -Math.PI / 2;
+table.receiveShadow = true;
+scene.add(table);
+
+/* ============================== flavors ============================= */
+
+function radialTex(inner) {  // inner: 'r,g,b' — tint of the cast shadow
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const rad = g.createRadialGradient(64, 64, 2, 64, 64, 62);
+  rad.addColorStop(0, `rgba(${inner},0.55)`);
+  rad.addColorStop(0.45, `rgba(${inner},0.28)`);
+  rad.addColorStop(1, `rgba(${inner},0)`);
+  g.fillStyle = rad; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4; t.needsUpdate = true;
+  return t;
+}
+
+const FLAVORS = [
+  { name:'cherry',    base:'#ff4d59', att:'#b50f2d', thick:0.5,  shadow:'168, 46, 66' },
+  { name:'orange',    base:'#ff9128', att:'#c25e00', thick:0.55, shadow:'190,110, 44' },
+  { name:'lemon',     base:'#ffd94a', att:'#b98a10', thick:0.6,  shadow:'186,142, 58' },
+  { name:'apple',     base:'#95e04c', att:'#3d8000', thick:0.55, shadow:'116,142, 74' },
+  { name:'pineapple', base:'#fff6d8', att:'#d8c084', thick:1.15, shadow:'196,182,148' },
+];
+for (const f of FLAVORS) {
+  f.mat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(f.base), roughness: 0.055, metalness: 0,
+    transmission: 1.0, ior: 1.42, thickness: 0.8,
+    attenuationColor: new THREE.Color(f.att), attenuationDistance: f.thick,
+    clearcoat: 1.0, clearcoatRoughness: 0.09,
+    envMapIntensity: 0.75, specularIntensity: 1,
+  });
+  f.blobMat = new THREE.MeshBasicMaterial({
+    map: radialTex(f.shadow), transparent: true, depthWrite: false, opacity: 1,
+  });
+  f.faceMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(f.base).multiplyScalar(0.22),
+    roughness: 0.25, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.12,
+    envMapIntensity: 0.6,
+  });
+}
+const faceGeo = new THREE.SphereGeometry(1, 14, 10);
+
+/* ============================ soft body ============================= */
+const FLAGS = window.__FLAGS = { righting: true, hop: true, selfMin: true, velImpulse: true, grab: true };
+/* rest pose: [x, y, z, radius, mass] — units where bear height ≈ 1.13    */
+
+const PTS = [
+  [ 0.000, 0.860, 0.010, 0.200, 0.220], // 0 head
+  [-0.160, 1.070, 0.000, 0.070, 0.025], // 1 ear L
+  [ 0.160, 1.070, 0.000, 0.070, 0.025], // 2 ear R
+  [ 0.000, 0.795, 0.190, 0.080, 0.060], // 3 snout
+  [ 0.000, 0.450,-0.010, 0.200, 0.230], // 4 chest
+  [ 0.000, 0.270, 0.010, 0.215, 0.270], // 5 belly
+  [-0.290, 0.340, 0.120, 0.075, 0.050], // 6 hand L
+  [ 0.290, 0.340, 0.120, 0.075, 0.050], // 7 hand R
+  [-0.140, 0.105, 0.170, 0.095, 0.065], // 8 foot L
+  [ 0.140, 0.105, 0.170, 0.095, 0.065], // 9 foot R
+];
+// molded face bits: {anchor: point index, off: offset from anchor (bear-local), r: radius}
+const FACE = [
+  { anchor: 0, off: [-0.082, 0.018, 0.192], r: 0.033 },  // eye L
+  { anchor: 0, off: [ 0.082, 0.018, 0.192], r: 0.033 },  // eye R
+  { anchor: 3, off: [ 0.000, 0.005, 0.055], r: 0.040 },  // nose
+];
+const NP = PTS.length;
+const SEGS = [ // [a, b, rA, rB] — rendered as capsules (strands)
+  [4, 0, 0.155, 0.145], // neck
+  [0, 3, 0.070, 0.072], // snout
+  [0, 1, 0.048, 0.055], // ear L
+  [0, 2, 0.048, 0.055], // ear R
+  [4, 6, 0.115, 0.072], // arm L
+  [4, 7, 0.115, 0.072], // arm R
+  [5, 8, 0.110, 0.092], // leg L
+  [5, 9, 0.110, 0.092], // leg R
+];
+const NSG = SEGS.length;
+
+const MC_MAX = 40;                       // nodes per axis
+const GRID_N = MC_MAX * MC_MAX * MC_MAX; // field pool
+const MAXV = 9000;                       // vertices per bear
+
+let cellTarget = 0.042;    // adaptive grid cell (perf governor)
+let wobble = 0.55;         // slider 0..1
+let timeNow = 0;
+let bounces = 0;
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+// flavor bag so pours come out multicolored
+const bag = [];
+function nextFlavor() {
+  if (!bag.length) bag.push(...FLAVORS.map((_, i) => i).sort(() => Math.random() - 0.5));
+  return FLAVORS[bag.pop()];
+}
+
+class Bear {
+  constructor(flavor) {
+    this.flavor = flavor;
+    this.p = new Float32Array(3 * NP);
+    this.v = new Float32Array(3 * NP);
+    this.q = new Float32Array(3 * NP);   // rest offsets from COM
+    this.prev = new Float32Array(3 * NP);
+    this.segRest = new Float32Array(NSG);
+    // NOTE: use the SPATIAL (unweighted) centroid — step() anchors goals on the
+    // unweighted average of positions; mixing conventions would inject a phantom force.
+    let comx = 0, comy = 0, comz = 0, M = 0;
+    for (let i = 0; i < NP; i++) { comx += PTS[i][0] / NP; comy += PTS[i][1] / NP; comz += PTS[i][2] / NP; }
+    for (let i = 0; i < NP; i++) M += PTS[i][4];
+    this.M = M;
+    for (let i = 0; i < NP; i++) {
+      this.q[3*i] = PTS[i][0] - comx;
+      this.q[3*i+1] = PTS[i][1] - comy;
+      this.q[3*i+2] = PTS[i][2] - comz;
+    }
+    let ymin = 1e9, ymax = -1e9, lat = 0;
+    for (let i = 0; i < NP; i++) {
+      ymin = Math.min(ymin, this.q[3*i+1]); ymax = Math.max(ymax, this.q[3*i+1]);
+      lat = Math.max(lat, Math.hypot(this.q[3*i], this.q[3*i+2]));
+    }
+    this.restY = ymax - ymin;
+    this.restLat = lat;
+    this.restFootY = comy - (PTS[8][1] - PTS[8][3] - 0.008); // COM height when resting on floor
+    for (let s = 0; s < NSG; s++) {
+      const a = SEGS[s][0], b = SEGS[s][1];
+      this.segRest[s] = Math.hypot(this.q[3*a]-this.q[3*b], this.q[3*a+1]-this.q[3*b+1], this.q[3*a+2]-this.q[3*b+2]);
+    }
+
+    this.rot = new THREE.Quaternion();
+    this.goalSy = 1;
+    this.squashTimer = 0;
+    this.airTime = 0;
+    this.hitImp = 0;
+    this.bounceCd = 0;
+    this.hopPhase = -1;
+    this.hopAt = 2 + Math.random() * 4;
+    this.wiggleAt = 1 + Math.random() * 3;
+    this.move = 10;
+    this.forceRebuild = true;
+
+    // metaball field + render mesh (positions in world space)
+    this.F = new Float32Array(GRID_N);
+    this.N = new Float32Array(GRID_N * 3);
+    this.gpos = new Float32Array(MAXV * 9);
+    this.gnrm = new Float32Array(MAXV * 9);
+    this.parts = []; for (let i = 0; i < NP + NSG; i++) this.parts.push({ s:1, x:0,y:0,z:0,R:0 });
+    this.com = new THREE.Vector3();
+
+    const geo = new THREE.BufferGeometry();
+    this.posAttr = new THREE.BufferAttribute(this.gpos, 3).setUsage(THREE.DynamicDrawUsage);
+    this.nrmAttr = new THREE.BufferAttribute(this.gnrm, 3).setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute('position', this.posAttr);
+    geo.setAttribute('normal', this.nrmAttr);
+    geo.setDrawRange(0, 0);
+    this.geo = geo;
+    this.mesh = new THREE.Mesh(geo, flavor.mat);
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
+    this.mesh.frustumCulled = false;
+    scene.add(this.mesh);
+
+    this.blob = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7, 1, 1), flavor.blobMat.clone());
+    this.blob.rotation.x = -Math.PI / 2;
+    this.blob.frustumCulled = false;
+    scene.add(this.blob);
+
+    // molded face: two eyes + a nose riding the head/snout points
+    this.face = FACE.map(() => {
+      const m = new THREE.Mesh(faceGeo, flavor.faceMat);
+      scene.add(m);
+      return m;
+    });
+
+    this.reset(0, 1.2, 0, 0);
+  }
+
+  get grabbed() { return grab && grab.bear === this; }
+
+  reset(x, y, z, yaw) {
+    const dq = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), yaw);
+    for (let i = 0; i < NP; i++) {
+      this.v[3*i] = (Math.random()-0.5)*0.4; this.v[3*i+1] = 0; this.v[3*i+2] = (Math.random()-0.5)*0.4;
+      const qx = this.q[3*i], qy = this.q[3*i+1], qz = this.q[3*i+2];
+      _tv.set(qx, qy, qz).applyQuaternion(dq);
+      this.p[3*i]   = x + _tv.x;
+      this.p[3*i+1] = y + _tv.y;
+      this.p[3*i+2] = z + _tv.z;
+    }
+    this.rot.copy(dq);
+    this.goalSy = 1; this.squashTimer = 0; this.airTime = 0; this.hitImp = 0;
+    this.hopPhase = -1; this.hopAt = timeNow + 2 + Math.random() * 4;
+    this.move = 10; this.forceRebuild = true;
+    this.mesh.material = this.flavor.mat;
+    this.blob.material = this.flavor.blobMat.clone();
+    for (const m of this.face) m.material = this.flavor.faceMat;
+  }
+
+  /* ---- one physics substep ---- */
+  step(h) {
+    const p = this.p, v = this.v;
+    const kS = lerp(300, 90, wobble);  // velocity-level shape matching stiffness
+    const damp = Math.exp(-lerp(3.0, 1.1, wobble) * h);
+
+    // grab spring on the held point
+    if (this.grabbed) {
+      const i = grab.i;
+      const ex = grab.target.x - p[3*i], ey = grab.target.y - p[3*i+1], ez = grab.target.z - p[3*i+2];
+      v[3*i]   = v[3*i]   * 0.94 + ex * 150 * h;
+      v[3*i+1] = v[3*i+1] * 0.94 + ey * 150 * h;
+      v[3*i+2] = v[3*i+2] * 0.94 + ez * 150 * h;
+    }
+
+
+    // gravity + integrate
+    for (let i = 0; i < NP; i++) {
+      v[3*i+1] -= 10 * h;
+      p[3*i]   += v[3*i]   * h;
+      p[3*i+1] += v[3*i+1] * h;
+      p[3*i+2] += v[3*i+2] * h;
+    }
+
+    // shape matching (fit current pose → goal pose, correct position & velocity)
+    let cx = 0, cy = 0, cz = 0;
+    for (let i = 0; i < NP; i++) { cx += p[3*i]; cy += p[3*i+1]; cz += p[3*i+2]; }
+    cx /= NP; cy /= NP; cz /= NP;
+    this.com.set(cx, cy, cz);
+    const A = _A;
+    A[0]=A[1]=A[2]=A[3]=A[4]=A[5]=A[6]=A[7]=A[8]=0;
+    for (let i = 0; i < NP; i++) {
+      const px = p[3*i]-cx, py = p[3*i+1]-cy, pz = p[3*i+2]-cz;
+      A[0]+=px*this.q[3*i];   A[1]+=px*this.q[3*i+1]; A[2]+=px*this.q[3*i+2];
+      A[3]+=py*this.q[3*i];   A[4]+=py*this.q[3*i+1]; A[5]+=py*this.q[3*i+2];
+      A[6]+=pz*this.q[3*i];   A[7]+=pz*this.q[3*i+1]; A[8]+=pz*this.q[3*i+2];
+    }
+    // rotate-fit (iterative, seeded from previous frame)
+    const q = this.rot;
+    let qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+    for (let it = 0; it < 6; it++) {
+      const c0x = 1-2*(qy*qy+qz*qz), c0y = 2*(qx*qy+qw*qz), c0z = 2*(qx*qz-qw*qy);
+      const c1x = 2*(qx*qy-qw*qz), c1y = 1-2*(qx*qx+qz*qz), c1z = 2*(qy*qz+qw*qx);
+      const c2x = 2*(qx*qz+qw*qy), c2y = 2*(qy*qz-qw*qx), c2z = 1-2*(qx*qx+qy*qy);
+      // columns of A
+      const a0x=A[0],a0y=A[3],a0z=A[6], a1x=A[1],a1y=A[4],a1z=A[7], a2x=A[2],a2y=A[5],a2z=A[8];
+      let wx = c0y*a0z-c0z*a0y + c1y*a1z-c1z*a1y + c2y*a2z-c2z*a2y;
+      let wy = c0z*a0x-c0x*a0z + c1z*a1x-c1x*a1z + c2z*a2x-c2x*a2z;
+      let wz = c0x*a0y-c0y*a0x + c1x*a1y-c1y*a1x + c2x*a2y-c2y*a2x;
+      const wlen = Math.sqrt(wx*wx+wy*wy+wz*wz);
+      if (wlen < 1e-6) break;
+      wx= wx/wlen; wy = wy/wlen; wz = wz/wlen;
+      const ang = Math.min(wlen, 1.2), s = Math.sin(ang*0.5), cw = Math.cos(ang*0.5);
+      // premultiply dq
+      const nx = cw*qx + s*(wz*qy - wy*qz), nyv = cw*qy + s*(wx*qz - wz*qx),
+            nz = cw*qz + s*(wy*qx - wx*qy), nw = cw*qw - s*(wx*qx + wy*qy + wz*qz);
+      const nl = 1/Math.sqrt(nx*nx+nyv*nyv+nz*nz+nw*nw);
+      qx = nx*nl; qy = nyv*nl; qz = nz*nl; qw = nw*nl;
+    }
+    q.set(qx, qy, qz, qw);
+
+    // squash state → anisotropic goal (Poisson bulge), relaxed back to rest cube
+    let ymin = 1e9, ymax = -1e9, lat = 0;
+    for (let i = 0; i < NP; i++) {
+      _tv.set(p[3*i]-cx, p[3*i+1]-cy, p[3*i+2]-cz).applyQuaternion(_qi.copy(q).invert());
+      ymin = Math.min(ymin, _tv.y); ymax = Math.max(ymax, _tv.y);
+      lat = Math.max(lat, Math.hypot(_tv.x, _tv.z));
+    }
+    this.syMeas = (ymax - ymin) / this.restY;
+    let gs = this.goalSy;
+    if (this.grabbed || this.squashTimer > 0) {
+      if (this.syMeas < 0.98) gs = lerp(gs, clamp(this.syMeas, 0.42, 0.98), 0.38);
+      else gs = lerp(gs, 1, 0.22);
+    } else {
+      gs = lerp(gs, 1, 0.16);
+    }
+    this.goalSy = gs;
+    const gsC = clamp(gs, 0.3, 1.7);
+    const sxz = 1 / Math.sqrt(gsC);
+
+    for (let i = 0; i < NP; i++) {
+      _tv.set(this.q[3*i]*sxz, this.q[3*i+1]*gsC, this.q[3*i+2]*sxz)
+         .applyQuaternion(q);
+      const ex = cx + _tv.x - p[3*i], ey = cy + _tv.y - p[3*i+1], ez = cz + _tv.z - p[3*i+2];
+      v[3*i]   += ex * kS * h;
+      v[3*i+1] += ey * kS * h;
+      v[3*i+2] += ez * kS * h;
+      v[3*i] *= damp; v[3*i+1] *= damp; v[3*i+2] *= damp;
+    }
+
+    // floor + table bounds (constraints after shape correction)
+    for (let i = 0; i < NP; i++) {
+      const rr = PTS[i][3];
+      if (p[3*i+1] < rr) {
+        p[3*i+1] = rr;
+        if (v[3*i+1] < 0) {
+          this.hitImp = Math.max(this.hitImp, -v[3*i+1]);
+          v[3*i+1] = -v[3*i+1] * 0.32;
+        }
+        v[3*i] *= 0.945; v[3*i+2] *= 0.945;
+      }
+      // drift back toward the table
+      if (p[3*i] > 6.2 || p[3*i] < -6.2) v[3*i] -= p[3*i] * 0.6 * h * 5;
+      if (p[3*i+2] > 6.2 || p[3*i+2] < -6.2) v[3*i+2] -= p[3*i+2] * 0.6 * h * 5;
+    }
+  }
+
+  /* ---- after substeps: frame-level state ---- */
+  postFrame(dt) {
+    const p = this.p, v = this.v;
+    // motion amount (for field rebuild skipping)
+    let mv = 0;
+    for (let i = 0; i < 3*NP; i++) {
+      const d = Math.abs(p[i] - this.prev[i]);
+      if (d > mv) mv = d;
+      this.prev[i] = p[i];
+    }
+    this.move = mv;
+
+    // squash timer relax
+    this.squashTimer = Math.max(0, this.squashTimer - dt);
+
+    // bounce detection
+    let minY = 1e9;
+    for (let i = 0; i < NP; i++) minY = Math.min(minY, p[3*i+1]);
+    if (minY > PTS[8][3] + 0.05) this.airTime += dt;
+    else if (this.airTime > 0) {
+      if (this.hitImp > 2.0 && this.airTime > 0.12 && this.bounceCd <= 0) {
+        bounces++; elBounces.textContent = bounces;
+        this.squashTimer = 0.34; this.bounceCd = 0.5;
+      }
+      this.airTime = 0; this.hitImp = 0;
+    }
+    this.bounceCd = Math.max(0, this.bounceCd - dt);
+    if (this.airTime === 0) this.hitImp *= 0.9;
+
+    // gentle self-righting torque when resting (applied as angular velocity impulse —
+    // the rotation fit alone would keep eroding any quaternion nudge back to the lying pose)
+    if (FLAGS.righting && !this.grabbed && this.hopPhase < 0) {
+      let spd = 0;
+      for (let i = 0; i < NP; i++) spd += Math.abs(v[3*i]) + Math.abs(v[3*i+1]) + Math.abs(v[3*i+2]);
+      if (spd < 1.2 && this.com.y < this.restFootY + 0.5) {
+        _tv.set(0, 1, 0).applyQuaternion(this.rot);
+        const ax = -_tv.z, az = _tv.x; // tilt axis (bodyUp × worldUp) — righting direction
+        const s = Math.sqrt(ax*ax + az*az);
+        if (s > 0.04) {
+          const w = s * 1.57 * 3.0;   // rad/s toward upright
+          const wx = ax / s * w, wz = az / s * w;
+          for (let i = 0; i < NP; i++) {
+            const rx = p[3*i] - this.com.x, ry = p[3*i+1] - this.com.y, rz = p[3*i+2] - this.com.z;
+            v[3*i]   += -wz * ry * dt;
+            v[3*i+1] += (wz * rx - wx * rz) * dt;
+            v[3*i+2] += wx * ry * dt;
+          }
+        }
+      }
+    }
+
+    // idle hops + wiggles
+    if (FLAGS.hop && !this.grabbed && this.hopPhase < 0) {
+      let speed = 0;
+      for (let i = 0; i < NP; i++) speed += Math.abs(v[3*i]) + Math.abs(v[3*i+1]) + Math.abs(v[3*i+2]);
+      const resting = this.com.y < this.restFootY + 0.25 && speed < 0.25;
+      if (timeNow > this.wiggleAt && resting) {
+        this.wiggleAt = timeNow + 1.2 + Math.random() * 2.5;
+        for (const i of [1, 2, 6, 7]) {
+          v[3*i] += (Math.random()-0.5)*1.1; v[3*i+2] += (Math.random()-0.5)*1.1;
+        }
+      }
+      if (timeNow > this.hopAt && resting) {
+        this.hopPhase = 1; this.hopT = 0;
+        for (let i = 0; i < NP; i++) { v[3*i] *= 0.2; v[3*i+2] *= 0.2; }
+        for (let i = 0; i < NP; i++) v[3*i+1] -= 3.4;
+      }
+    } else if (this.hopPhase === 1) {
+      this.hopT += dt;
+      if (this.hopT > 0.14) {
+        this.hopPhase = -1;
+        this.hopAt = timeNow + 2.5 + Math.random() * 4.5;
+        for (let i = 0; i < NP; i++) {
+          v[3*i+1] += 4.0 + Math.random() * 2.2 + (this.goalSy < 0.9 ? 1.4 : 0);
+          v[3*i]   += (Math.random()-0.5) * 0.5;
+          v[3*i+2] += (Math.random()-0.5) * 0.5;
+        }
+      }
+    }
+
+    // stretch readout contribution
+    let ms = 1;
+    for (let s = 0; s < NSG; s++) {
+      const a = SEGS[s][0], b = SEGS[s][1];
+      const L = Math.hypot(p[3*a]-p[3*b], p[3*a+1]-p[3*b+1], p[3*a+2]-p[3*b+2]);
+      ms = Math.max(ms, L / this.segRest[s]);
+    }
+    this.stretch = ms;
+  }
+
+  /* ---- reconstruct implicit surface ---- */
+  updateMesh() {
+    if (!this.forceRebuild && (this.grabbed === false && this.move < 0.0035 &&
+        Math.abs(this.goalSy - this.builtSy) < 0.004)) return;
+    const p = this.p, parts = this.parts;
+    let idx = 0;
+    const RK = _rk;
+    for (let i = 0; i < NP; i++) {
+      parts[idx].s = 1;
+      parts[idx].x = p[3*i]; parts[idx].y = p[3*i+1]; parts[idx].z = p[3*i+2];
+      parts[idx].R = PTS[i][3] * 1.6;
+      RK[i] = parts[idx].R;
+      idx++;
+    }
+    let maxStretch = 1;
+    for (let s = 0; s < NSG; s++) {
+      const a = SEGS[s][0], b = SEGS[s][1];
+      const ax = p[3*a], ay = p[3*a+1], az = p[3*a+2];
+      const bx = p[3*b], by = p[3*b+1], bz = p[3*b+2];
+      const L = Math.hypot(bx-ax, by-ay, bz-az);
+      const st = clamp(L / this.segRest[s], 0.7, 2.6);
+      maxStretch = Math.max(maxStretch, st);
+      const thin = clamp(1 - (st - 1) * 0.5, 0.62, 1);   // strands thin as they stretch
+      const t = parts[idx];
+      t.s = 2; t.ax = ax; t.ay = ay; t.az = az; t.bx = bx; t.by = by; t.bz = bz;
+      t.R0 = SEGS[s][2] * 1.6 * thin; t.R1 = SEGS[s][3] * 1.6 * thin;
+      idx++;
+    }
+    // grid bounds around the part union
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
+    for (const t of parts) {
+      const R = t.s === 1 ? t.R : Math.max(t.R0, t.R1);
+      x0 = Math.min(x0, (t.s === 1 ? t.x : Math.min(t.ax, t.bx)) - R);
+      x1 = Math.max(x1, (t.s === 1 ? t.x : Math.max(t.ax, t.bx)) + R);
+      y0 = Math.min(y0, (t.s === 1 ? t.y : Math.min(t.ay, t.by)) - R);
+      y1 = Math.max(y1, (t.s === 1 ? t.y : Math.max(t.ay, t.by)) + R);
+      z0 = Math.min(z0, (t.s === 1 ? t.z : Math.min(t.az, t.bz)) - R);
+      z1 = Math.max(z1, (t.s === 1 ? t.z : Math.max(t.az, t.bz)) + R);
+    }
+    const pad = cellTarget * 2.5;
+    x0 -= pad; y0 -= pad; z0 -= pad; x1 += pad; y1 += pad; z1 += pad;
+    const nx = Math.min(MC_MAX, Math.max(8, Math.ceil((x1-x0)/cellTarget) + 1));
+    const ny = Math.min(MC_MAX, Math.max(8, Math.ceil((y1-y0)/cellTarget) + 1));
+    const nz = Math.min(MC_MAX, Math.max(8, Math.ceil((z1-z0)/cellTarget) + 1));
+    const count = mcBuild(this.F, this.N, nx, ny, nz, x0, y0, z0,
+      (x1-x0)/(nx-1), (y1-y0)/(ny-1), (z1-z0)/(nz-1), parts, this.gpos, this.gnrm, MAXV);
+    this.geo.attributes.position.needsUpdate = true;
+    this.geo.attributes.normal.needsUpdate = true;
+    this.geo.setDrawRange(0, count * 3);
+    this.forceRebuild = false;
+    this.builtSy = this.goalSy;
+    this.builtStretch = maxStretch;
+  }
+
+  updateFace() {
+    for (let i = 0; i < this.face.length; i++) {
+      const f = FACE[i], m = this.face[i];
+      const a = f.anchor;
+      m.position.set(this.p[3*a], this.p[3*a+1], this.p[3*a+2]);
+      _tv.set(f.off[0], f.off[1], f.off[2]).applyQuaternion(this.rot);
+      m.position.add(_tv);
+      m.scale.setScalar(f.r);
+    }
+  }
+
+  updateBlob() {
+    const c = this.com;
+    const h = Math.max(0, c.y - this.restFootY);
+    let sx = 0, sz = 0;
+    const p = this.p;
+    let xa = 1e9, xb = -1e9, za = 1e9, zb = -1e9;
+    for (let i = 0; i < NP; i++) {
+      xa = Math.min(xa, p[3*i]); xb = Math.max(xb, p[3*i]);
+      za = Math.min(za, p[3*i+2]); zb = Math.max(zb, p[3*i+2]);
+    }
+    const spread = Math.max(xb - xa, zb - za);
+    const s = clamp(0.55 + spread * 1.0 + h * 0.25, 0.6, 1.7);
+    this.blob.position.set(c.x, 0.014, c.z);
+    this.blob.scale.setScalar(s);
+    this.blob.material.opacity = clamp(0.62 / (1 + h * 0.9), 0.05, 0.62);
+  }
+}
+
+const _tv = new THREE.Vector3();
+const _tv2 = new THREE.Vector3();
+const _qi = new THREE.Quaternion();
+const _A = new Float32Array(9);
+const _rk = new Float32Array(NP);
+const _ray = new THREE.Raycaster();
+
+/* ============================ interaction =========================== */
+
+const bears = [];
+const MAX_BEARS = 12;
+let grab = null; // { bear, i, plane, target }
+
+function pickPoint(ray) {
+  let best = null, bestD = 0.42;
+  for (const b of bears) {
+    for (let i = 0; i < NP; i++) {
+      _tv.set(b.p[3*i], b.p[3*i+1], b.p[3*i+2]).sub(ray.origin);
+      const t = _tv.dot(ray.direction);
+      if (t < 0.1) continue;
+      const px = ray.origin.x + ray.direction.x * t - b.p[3*i];
+      const py = ray.origin.y + ray.direction.y * t - b.p[3*i+1];
+      const pz = ray.origin.z + ray.direction.z * t - b.p[3*i+2];
+      const d = Math.sqrt(px*px + py*py + pz*pz);
+      if (d < bestD) { bestD = d; best = { bear: b, i, t: Math.min(t, camCtl.dist * 0.9) }; }
+    }
+  }
+  return best;
+}
+
+const ndc = new THREE.Vector2();
+function setRay(e) {
+  ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  _ray.setFromCamera(ndc, camera);
+}
+
+const dom = renderer.domElement;
+let orbiting = false, lastX = 0, lastY = 0;
+
+dom.addEventListener('pointerdown', (e) => {
+  dom.setPointerCapture(e.pointerId);
+  if (e.button === 2) { orbiting = true; lastX = e.clientX; lastY = e.clientY; return; }
+  if (e.button !== 0) return;
+  setRay(e);
+  const hit = pickPoint(_ray.ray);
+  if (hit) {
+    const p = hit.bear.p;
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+      camera.getWorldDirection(_tv).clone().negate(),
+      new THREE.Vector3(p[3*hit.i], p[3*hit.i+1], p[3*hit.i+2]));
+    const target = new THREE.Vector3();
+    _ray.ray.intersectPlane(plane, target);
+    grab = { bear: hit.bear, i: hit.i, plane, target };
+    hit.bear.hopPhase = -1;
+    cursor.classList.add('grab');
+  }
+});
+window.addEventListener('pointermove', (e) => {
+  cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+  if (grab) {
+    setRay(e);
+    _ray.ray.intersectPlane(grab.plane, grab.target);
+  } else if (orbiting) {
+    camCtl.yaw -= (e.clientX - lastX) * 0.0055;
+    camCtl.pitch += (e.clientY - lastY) * 0.0045;
+    lastX = e.clientX; lastY = e.clientY;
+    placeCamera();
+  }
+});
+window.addEventListener('pointerup', () => { grab = null; orbiting = false; cursor.classList.remove('grab'); });
+window.addEventListener('blur', () => { grab = null; orbiting = false; cursor.classList.remove('grab'); });
+dom.addEventListener('contextmenu', (e) => e.preventDefault());
+dom.addEventListener('wheel', (e) => {
+  camCtl.dist = clamp(camCtl.dist * Math.exp(e.deltaY * 0.0011), 3.4, 10);
+  placeCamera();
+}, { passive: true });
+
+/* ================================ UI ================================ */
+
+const cursor = document.getElementById('cursor');
+cursor.style.transform = 'translate(-100px,-100px)';
+const elStretch = document.getElementById('stretch');
+const elBounces = document.getElementById('bounces');
+const elNbears = document.getElementById('nbears');
+const elWob = document.getElementById('wobVal');
+
+const swWrap = document.getElementById('swatches');
+let selFlavor = -1;
+FLAVORS.forEach((f, i) => {
+  const b = document.createElement('button');
+  b.className = 'sw'; b.title = f.name;
+  b.style.background = f.base;
+  b.onclick = () => {
+    selFlavor = (selFlavor === i ? -1 : i);
+    [...swWrap.children].forEach((c, j) => c.classList.toggle('sel', selFlavor === j));
+  };
+  swWrap.appendChild(b);
+});
+
+document.getElementById('wobble').addEventListener('input', (e) => {
+  wobble = e.target.value / 100;
+  elWob.textContent = e.target.value;
+});
+
+function pourBears(n) {
+  for (let k = 0; k < n; k++) {
+    const flav = selFlavor >= 0 ? FLAVORS[selFlavor] : nextFlavor();
+    const x = (Math.random() - 0.5) * 2.6;
+    const z = (Math.random() - 0.5) * 2.0;
+    const yaw = Math.random() * Math.PI * 2;
+    if (bears.length < MAX_BEARS) {
+      bears.push(new Bear(flav));
+      bears[bears.length-1].reset(x, 2.7 + k * 0.95, z, yaw);
+    } else {
+      const old = bears.find(b => !b.grabbed) || bears[0];
+      old.flavor = flav;
+      old.reset(x, 2.7 + k * 0.95, z, yaw);
+    }
+  }
+  elNbears.textContent = bears.length;
+}
+document.getElementById('pour').addEventListener('click', () => pourBears(4));
+
+/* =============================== loop =============================== */
+
+const clock = new THREE.Clock();
+const statTimer = { t: 0 };
+const perf = { frames: 0, frameMs: 0, buildMs: 0, overCoold: 0 };
+let stretchSm = 1;
+
+function frame() {
+  requestAnimationFrame(frame);
+  const dtRaw = clock.getDelta();
+  const dt = Math.min(0.033, dtRaw);
+  timeNow += dt;
+
+  const t0 = performance.now();
+
+  // physics
+  const n = 3, h = dt / n;
+  for (let s = 0; s < n; s++) {
+    for (const b of bears) b.step(h);
+    // pairwise collisions
+    for (let i = 0; i < bears.length; i++) {
+      const bi = bears[i];
+      for (let j = i + 1; j < bears.length; j++) {
+        const bj = bears[j];
+        if (bi.com.distanceToSquared(bj.com) > 5.8) continue;
+        for (let a = 0; a < NP; a++) {
+          for (let c = 0; c < NP; c++) {
+            const ax = bi.p[3*a], ay = bi.p[3*a+1], az = bi.p[3*a+2];
+            const bx = bj.p[3*c], by = bj.p[3*c+1], bz = bj.p[3*c+2];
+            let dx = bx-ax, dy = by-ay, dz = bz-az;
+            const rr = PTS[a][3] + PTS[c][3];
+            const d2 = dx*dx + dy*dy + dz*dz;
+            if (d2 > rr*rr || d2 < 1e-9) continue;
+            const d = Math.sqrt(d2);
+            dx /= d; dy /= d; dz /= d;
+            const ov = rr - d;
+            const ia = bi.grabbed ? 0.15 : 1 / bi.M, ib = bj.grabbed ? 0.15 : 1 / bj.M;
+            const W = ia + ib;
+            const push = ov * 0.22 / W;
+            bi.p[3*a] -= dx*push*ia; bi.p[3*a+1] -= dy*push*ia; bi.p[3*a+2] -= dz*push*ia;
+            bj.p[3*c] += dx*push*ib; bj.p[3*c+1] += dy*push*ib; bj.p[3*c+2] += dz*push*ib;
+            const vn = (bj.v[3*c]-bi.v[3*a])*dx + (bj.v[3*c+1]-bi.v[3*a+1])*dy + (bj.v[3*c+2]-bi.v[3*a+2])*dz;
+            if (vn < 0) {
+              const imp = -1.1 * vn / W;
+              bi.v[3*a] -= dx*imp*ia; bi.v[3*a+1] -= dy*imp*ia; bi.v[3*a+2] -= dz*imp*ia;
+              bj.v[3*c] += dx*imp*ib; bj.v[3*c+1] += dy*imp*ib; bj.v[3*c+2] += dz*imp*ib;
+            }
+          }
+        }
+      }
+      // self min-distance (keep parts from collapsing into each other)
+      if (FLAGS.selfMin) for (let a = 0; a < NP; a++) {
+        for (let c = a+1; c < NP; c++) {
+          let dx = bi.p[3*c]-bi.p[3*a], dy = bi.p[3*c+1]-bi.p[3*a+1], dz = bi.p[3*c+2]-bi.p[3*a+2];
+          const md = (PTS[a][3] + PTS[c][3]) * 0.62;
+          const d2 = dx*dx + dy*dy + dz*dz;
+          if (d2 > md*md || d2 < 1e-9) continue;
+          const d = Math.sqrt(d2);
+          dx /= d; dy /= d; dz /= d;
+          const push = (md - d) * 0.4;
+          bi.p[3*a] -= dx*push; bi.p[3*a+1] -= dy*push; bi.p[3*a+2] -= dz*push;
+          bi.p[3*c] += dx*push; bi.p[3*c+1] += dy*push; bi.p[3*c+2] += dz*push;
+        }
+      }
+    }
+  }
+  for (const b of bears) {
+    b.postFrame(dt);
+  }
+
+  // surface rebuild
+  const tB0 = performance.now();
+  for (const b of bears) b.updateMesh();
+  for (const b of bears) { b.updateFace(); b.updateBlob(); }
+  perf.lastBuildMs = performance.now() - tB0;
+
+  // stats
+  statTimer.t += dt;
+  if (statTimer.t > 0.12) {
+    statTimer.t = 0;
+    let ms = 1;
+    for (const b of bears) if (b.stretch > ms) ms = b.stretch;
+    stretchSm += (ms - stretchSm) * 0.25;
+    elStretch.textContent = stretchSm.toFixed(2) + '×';
+  }
+
+  // perf governor: relax cellTarget if builds get hot
+  perf.frames++;
+  perf.frameMs += performance.now() - t0;
+  if (perf.frames >= 40) {
+    const fms = perf.frameMs / perf.frames;
+    if (fms > 23 && cellTarget < 0.065) cellTarget *= 1.12;
+    else if (fms < 15 && cellTarget > 0.038) cellTarget *= 0.965;
+    perf.frames = 0; perf.frameMs = 0;
+  }
+
+  renderer.render(scene, camera);
+}
+
+// initial pour (test hook + visual)
+pourBears(0);
+{
+  const seeds = [[0, 0.3], [-0.9, -0.55], [0.85, -0.7], [-1.5, 0.15], [1.45, 0.4]];
+  seeds.forEach(([x, z], i) => {
+    const b = new Bear(nextFlavor());
+    bears.push(b);
+    b.reset(x, b.restFootY, z, Math.random() * Math.PI * 2);
+  });
+  elNbears.textContent = bears.length;
+}
+
+window.__test = { bears, pourBears, perf,
+  dump: (i) => { const b = bears[i]; return { p: Array.from(b.p), rot: { x: b.rot.x, y: b.rot.y, z: b.rot.z, w: b.rot.w }, goalSy: b.goalSy, syMeas: b.syMeas, com: b.com.clone(), restY: b.restY }; },
+  get grab() { return grab; }, renderer,
+  scene: () => scene, camera,
+  project(comY, bear) { const v = bear ? bear.com.clone() : new THREE.Vector3(0, comY, 0); v.project(camera);
+    return { x: (v.x*0.5+0.5)*innerWidth, y: (-v.y*0.5+0.5)*innerHeight }; } };
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+frame();
+</script>
+</body>
+</html>

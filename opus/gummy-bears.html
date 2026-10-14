@@ -1,0 +1,1322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gummy Bears.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #161514;
+    --muted: #7a7672;
+    --line: #ebe8e4;
+    --card: rgba(255, 255, 255, 0.82);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #ffffff;
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    overflow: hidden;
+    cursor: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  canvas#scene {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+  }
+  .hero {
+    position: fixed;
+    top: clamp(24px, 5vh, 56px);
+    left: clamp(20px, 4.5vw, 72px);
+    pointer-events: none;
+    max-width: 520px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  h1 {
+    margin: 0;
+    font-family: "Instrument Serif", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(64px, 10.5vw, 164px);
+    line-height: 0.86;
+    letter-spacing: -0.025em;
+  }
+  .sub {
+    margin: 22px 0 0;
+    max-width: 330px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #4b4845;
+  }
+  .card {
+    position: fixed;
+    top: 50%;
+    right: clamp(16px, 4vw, 64px);
+    transform: translateY(-50%);
+    width: 272px;
+    padding: 22px 22px 20px;
+    background: var(--card);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 18px 50px -24px rgba(0,0,0,0.18);
+    cursor: default;
+  }
+  .card h2 {
+    margin: 0 0 4px;
+    font-family: "Instrument Serif", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1;
+  }
+  .card .note { font-size: 12px; color: var(--muted); margin: 0 0 18px; }
+  .label {
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .swatches { display: flex; gap: 10px; margin-bottom: 22px; }
+  .swatch {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    font-size: 10px;
+    color: #57534f;
+    cursor: pointer;
+  }
+  .swatch i {
+    display: block;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset 0 -6px 10px rgba(0,0,0,0.14), inset 0 4px 6px rgba(255,255,255,0.55), 0 0 0 1px rgba(0,0,0,0.06);
+    transition: transform 0.25s cubic-bezier(.3,1.6,.5,1);
+  }
+  .swatch:hover i { transform: scale(1.14) translateY(-2px); }
+  .swatch:active i { transform: scale(0.88); }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(to right, var(--ink) var(--p, 60%), var(--line) var(--p, 60%));
+    border-radius: 2px;
+    outline: none;
+    margin: 6px 0 24px;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; border: 1.5px solid var(--ink);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; border: 1.5px solid var(--ink);
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 18px;
+  }
+  .stat { padding: 12px 0; }
+  .stat + .stat { border-left: 1px solid var(--line); padding-left: 16px; }
+  .stat .label { margin-bottom: 4px; }
+  .stat b {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: 34px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  button.pour {
+    width: 100%;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #fff;
+    font: 500 14px "Inter", sans-serif;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(.3,1.6,.5,1), background 0.2s;
+  }
+  button.pour:hover { background: #2c2a28; transform: translateY(-1px); }
+  button.pour:active { transform: scale(0.97); }
+  .hint {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a29d98;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #cursor {
+    position: fixed;
+    left: 0; top: 0;
+    width: 18px; height: 18px;
+    margin: -9px 0 0 -9px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(22, 21, 20, 0.55);
+    pointer-events: none;
+    z-index: 10;
+    transition: width 0.25s cubic-bezier(.3,1.5,.5,1), height 0.25s cubic-bezier(.3,1.5,.5,1),
+                margin 0.25s cubic-bezier(.3,1.5,.5,1), background 0.2s, border-color 0.2s;
+    will-change: transform;
+  }
+  #cursor.hover { width: 28px; height: 28px; margin: -14px 0 0 -14px; }
+  #cursor.grab {
+    width: 50px; height: 50px; margin: -25px 0 0 -25px;
+    background: rgba(22, 21, 20, 0.06);
+    border-color: rgba(22, 21, 20, 0.4);
+  }
+  #cursor.ui { width: 8px; height: 8px; margin: -4px 0 0 -4px; background: var(--ink); border-color: transparent; }
+  @media (hover: none) { #cursor { display: none; } }
+  @media (max-width: 760px) {
+    .card {
+      top: auto; bottom: 16px; right: 16px; left: 16px;
+      transform: none; width: auto; padding: 16px;
+    }
+    .card h2, .card .note { display: none; }
+    .swatches { margin-bottom: 12px; }
+    input[type="range"] { margin-bottom: 14px; }
+    .stats { margin-bottom: 12px; }
+    .stat { padding: 8px 0; }
+    .stat b { font-size: 26px; }
+    .hint { display: none; }
+    .sub { font-size: 13px; max-width: 260px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<header class="hero">
+  <div class="eyebrow">No. 05 &mdash; Soft-body confectionery</div>
+  <h1>Gummy<br>Bears.</h1>
+  <p class="sub">Five fruit flavours cast in wobbling gelatin. Grab one and pull. Squash it, stretch it, fling it across the table &mdash; it always bounces back.</p>
+</header>
+
+<aside class="card" id="card">
+  <h2>The Assortment</h2>
+  <p class="note">Tap a flavour to drop a single bear.</p>
+  <div class="label"><span>Flavours</span><span>5</span></div>
+  <div class="swatches" id="swatches"></div>
+  <div class="label"><span>Wobble</span><span id="wobbleVal">60</span></div>
+  <input type="range" id="wobble" min="0" max="100" value="60">
+  <div class="stats">
+    <div class="stat"><div class="label">Stretch</div><b id="stretch">100%</b></div>
+    <div class="stat"><div class="label">Bounces</div><b id="bounces">0</b></div>
+  </div>
+  <button class="pour" id="pour">Pour more bears</button>
+</aside>
+
+<div class="hint">Drag to stretch &middot; Press down to squash &middot; Flick to throw</div>
+<div id="cursor"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
+
+// ---------------------------------------------------------------------------
+// Flavours
+// ---------------------------------------------------------------------------
+const FLAVORS = [
+  { name: 'Cherry',    color: '#ff4a62', atten: '#c8001e', dist: 0.42, swatch: '#e3173a', tint: [255, 120, 135], dark: [175, 40, 60] },
+  { name: 'Orange',    color: '#ffa04a', atten: '#f05500', dist: 0.48, swatch: '#ff7a1a', tint: [255, 175, 110], dark: [190, 95, 30] },
+  { name: 'Lemon',     color: '#ffe866', atten: '#f0b400', dist: 0.62, swatch: '#ffd31a', tint: [255, 230, 120], dark: [190, 150, 30] },
+  { name: 'Apple',     color: '#a6f070', atten: '#36a810', dist: 0.5, swatch: '#5fd13a', tint: [170, 235, 130], dark: [70, 145, 40] },
+  { name: 'Pineapple', color: '#fffcf2', atten: '#f4e2a2', dist: 2.2, swatch: '#f4ecd2', tint: [246, 236, 200], dark: [175, 165, 135] },
+];
+
+// ---------------------------------------------------------------------------
+// Bear rest shape: mass points (y up, bear faces +z)
+// ---------------------------------------------------------------------------
+const HEAD = 0, EAR_L = 1, EAR_R = 2, SNOUT = 3, BODY = 4, BELLY = 5, HAND_L = 6, HAND_R = 7, FOOT_L = 8, FOOT_R = 9, SEAT = 10;
+const N = 11;
+const REST = [
+  [0, 0.80, 0.00],     // head
+  [-0.155, 0.97, -0.02], // ear L
+  [0.155, 0.97, -0.02],  // ear R
+  [0, 0.74, 0.175],    // snout
+  [0, 0.50, -0.01],    // body / chest
+  [0, 0.29, 0.02],     // belly
+  [-0.26, 0.47, 0.08], // hand L
+  [0.26, 0.47, 0.08],  // hand R
+  [-0.15, 0.10, 0.07], // foot L
+  [0.15, 0.10, 0.07],  // foot R
+  [0, 0.12, -0.09],    // seat (rounded bottom, gives a stable tripod with the feet)
+];
+const RAD   = [0.200, 0.072, 0.072, 0.092, 0.185, 0.225, 0.072, 0.072, 0.100, 0.100, 0.115];
+const CRAD  = [0.205, 0.075, 0.075, 0.090, 0.190, 0.230, 0.080, 0.080, 0.100, 0.100, 0.120]; // collision radii
+const MASS  = [1.2, 0.2, 0.2, 0.3, 1.4, 1.8, 0.3, 0.3, 0.5, 0.5, 0.6];
+const STIFF = [1.0, 1.4, 1.4, 1.6, 1.0, 1.0, 0.7, 0.7, 1.15, 1.15, 1.2];
+const UPPER = [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
+// [a, b, base radius] — stretchy strands rendered as chains of metaballs
+const STRANDS = [
+  [HEAD, BODY, 0.150],
+  [BODY, BELLY, 0.190],
+  [BODY, HAND_L, 0.066], [BODY, HAND_R, 0.066],
+  [BELLY, FOOT_L, 0.090], [BELLY, FOOT_R, 0.090],
+  [HEAD, EAR_L, 0.055], [HEAD, EAR_R, 0.055],
+  [HEAD, SNOUT, 0.105],
+  [BELLY, SEAT, 0.15],
+];
+
+let TOTAL_M = 0;
+const RCOM = [0, 0, 0];
+const Q = new Float32Array(N * 3);
+const AQQI = new Float64Array(9);
+const STRAND_REST = [];
+const SETS = []; // SETS[0]: all particles, SETS[i + 1]: all but i
+(function precompute() {
+  for (let i = 0; i < N; i++) {
+    TOTAL_M += MASS[i];
+    for (let k = 0; k < 3; k++) RCOM[k] += MASS[i] * REST[i][k];
+  }
+  for (let k = 0; k < 3; k++) RCOM[k] /= TOTAL_M;
+  const aqq = new Float64Array(9);
+  for (let i = 0; i < N; i++) {
+    for (let k = 0; k < 3; k++) Q[i * 3 + k] = REST[i][k] - RCOM[k];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) aqq[r * 3 + c] += MASS[i] * Q[i * 3 + r] * Q[i * 3 + c];
+  }
+  invert3(aqq, AQQI);
+  // Matching sets that leave one particle out: while a part is held, the rest
+  // of the bear matches its own shape and only feels the held part as tension.
+  for (let ex = -1; ex < N; ex++) {
+    let m = 0;
+    const com = [0, 0, 0];
+    for (let i = 0; i < N; i++) {
+      if (i === ex) continue;
+      m += MASS[i];
+      for (let k = 0; k < 3; k++) com[k] += MASS[i] * REST[i][k];
+    }
+    for (let k = 0; k < 3; k++) com[k] /= m;
+    const q = new Float32Array(N * 3), a = new Float64Array(9), ai = new Float64Array(9);
+    for (let i = 0; i < N; i++) {
+      for (let k = 0; k < 3; k++) q[i * 3 + k] = REST[i][k] - com[k];
+      if (i === ex) continue;
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) a[r * 3 + c] += MASS[i] * q[i * 3 + r] * q[i * 3 + c];
+    }
+    invert3(a, ai);
+    SETS.push({ ex, m, com, q, aqqi: ai });
+  }
+  for (const [a, b] of STRANDS) {
+    STRAND_REST.push(Math.hypot(REST[a][0] - REST[b][0], REST[a][1] - REST[b][1], REST[a][2] - REST[b][2]));
+  }
+})();
+
+function invert3(m, out) {
+  const [a, b, c, d, e, f, g, h, i] = m;
+  const A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g;
+  const det = a * A + b * B + c * C;
+  const inv = 1 / det;
+  out[0] = A * inv; out[1] = -(b * i - c * h) * inv; out[2] = (b * f - c * e) * inv;
+  out[3] = B * inv; out[4] = (a * i - c * g) * inv; out[5] = -(a * f - c * d) * inv;
+  out[6] = C * inv; out[7] = -(a * h - b * g) * inv; out[8] = (a * e - b * d) * inv;
+}
+function det3(m) {
+  return m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6]) + m[2] * (m[3] * m[7] - m[4] * m[6]);
+}
+function quatToMat(q, m) {
+  const { x, y, z, w } = q;
+  const xx = x * x, yy = y * y, zz = z * z, xy = x * y, xz = x * z, yz = y * z, wx = w * x, wy = w * y, wz = w * z;
+  m[0] = 1 - 2 * (yy + zz); m[1] = 2 * (xy - wz);     m[2] = 2 * (xz + wy);
+  m[3] = 2 * (xy + wz);     m[4] = 1 - 2 * (xx + zz); m[5] = 2 * (yz - wx);
+  m[6] = 2 * (xz - wy);     m[7] = 2 * (yz + wx);     m[8] = 1 - 2 * (xx + yy);
+}
+
+// ---------------------------------------------------------------------------
+// Renderer, scene, camera
+// ---------------------------------------------------------------------------
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0xffffff, 1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(makeStudio(), 0.02).texture;
+
+// Bright product-studio environment: white sweep plus softboxes for crisp highlights
+function makeStudio() {
+  const env = new THREE.Scene();
+  const room = new THREE.Mesh(
+    new THREE.SphereGeometry(20, 32, 16),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'varying vec3 vP; void main(){ float h = normalize(vP).y; vec3 c = mix(vec3(0.62, 0.6, 0.58), vec3(1.05), smoothstep(-0.4, 0.5, h)); gl_FragColor = vec4(c, 1.0); }',
+    })
+  );
+  env.add(room);
+  const box = (w, h, x, y, z, k) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k, k), side: THREE.DoubleSide }));
+    m.position.set(x, y, z);
+    m.lookAt(0, 0, 0);
+    env.add(m);
+  };
+  box(10, 6, -9, 10, 9, 7);    // key softbox
+  box(14, 3, 6, 8, -12, 5);    // back strip
+  box(4, 12, 14, 3, 4, 3);     // side strip
+  box(12, 12, 0, 18, 0, 2.2);  // overhead
+  return env;
+}
+
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 100);
+const CAM_TARGET = new THREE.Vector3(0, 1.05, 0.2);
+function frameCamera() {
+  const aspect = innerWidth / innerHeight;
+  camera.aspect = aspect;
+  const dist = (aspect < 0.8 ? 15 : aspect < 1.2 ? 12 : 9.4);
+  const shift = aspect > 1.2 ? 0.55 : 0;
+  CAM_TARGET.x = shift;
+  CAM_TARGET.y = aspect < 0.8 ? 0.25 : 1.05; // portrait: lift the table above the bottom card
+  BOUNDS.zMax = aspect < 0.8 ? 1.0 : 2.0;
+  camera.position.set(shift, dist * 0.42, dist);
+  camera.lookAt(CAM_TARGET);
+  camera.updateProjectionMatrix();
+  const halfW = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * dist * aspect;
+  // keep the bears on the open table between the title column and the card
+  BOUNDS.xMin = shift - Math.min(3.4, halfW * 0.85);
+  BOUNDS.xMax = shift + Math.min(3.4, halfW * (aspect > 1.2 ? 0.5 : 0.85));
+}
+const BOUNDS = { xMin: -3.4, xMax: 3.4, zMin: -2.2, zMax: 2.0 };
+frameCamera();
+
+const key = new THREE.DirectionalLight(0xffffff, 2.4);
+key.position.set(-4, 7, 5);
+scene.add(key);
+const back = new THREE.DirectionalLight(0xfff2e2, 2.8);
+back.position.set(3, 4, -6);
+scene.add(back);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xf2eee8, 0.6));
+
+// Table: a white plane carrying a canvas with colored contact shadows.
+// It is opaque, so the bears refract their own shadows.
+const TABLE = 12, SHADOW_RES = 1024, PPU = SHADOW_RES / TABLE;
+const shadowCanvas = document.createElement('canvas');
+shadowCanvas.width = shadowCanvas.height = SHADOW_RES;
+const sctx = shadowCanvas.getContext('2d');
+const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+shadowTex.colorSpace = THREE.SRGBColorSpace;
+shadowTex.anisotropy = 4;
+const table = new THREE.Mesh(
+  new THREE.PlaneGeometry(TABLE, TABLE),
+  new THREE.MeshBasicMaterial({ map: shadowTex, toneMapped: false })
+);
+table.rotation.x = -Math.PI / 2;
+scene.add(table);
+
+// ---------------------------------------------------------------------------
+// Gummy material
+// ---------------------------------------------------------------------------
+function makeGummyMaterial(f) {
+  const m = new THREE.MeshPhysicalMaterial({
+    color: f.color,
+    roughness: 0.07,
+    metalness: 0,
+    transmission: 1,
+    thickness: 0.5,
+    ior: 1.45,
+    attenuationColor: new THREE.Color(f.atten),
+    attenuationDistance: f.dist,
+    clearcoat: 1,
+    clearcoatRoughness: 0.03,
+    specularIntensity: 1,
+    envMapIntensity: 1.0,
+  });
+  m.onBeforeCompile = (shader) => {
+    // Silhouette fix: interpolated normals at the rim can face away from the
+    // camera, which reads as a dark outline. Bend them back toward the viewer.
+    const nb = THREE.ShaderChunk.normal_fragment_begin;
+    const rimFix =
+      '{ vec3 gV = normalize( vViewPosition ); float gD = dot( normal, gV );\n' +
+      '  if ( gD < 0.2 ) normal = normalize( normal + gV * ( 0.2 - gD ) ); }\n';
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <normal_fragment_begin>',
+      nb.includes('vec3 nonPerturbedNormal = normal;')
+        ? nb.replace('vec3 nonPerturbedNormal = normal;', rimFix + 'vec3 nonPerturbedNormal = normal;')
+        : nb + rimFix
+    );
+    // Thick-at-center absorption: modulate thickness by the facing ratio so
+    // the middle of every blob reads deeper than its glowing edges.
+    const tf = THREE.ShaderChunk.transmission_fragment;
+    if (tf.includes('material.thickness = thickness;')) {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <transmission_fragment>',
+        tf.replace(
+          'material.thickness = thickness;',
+          'float gFacing = saturate( dot( normal, normalize( vViewPosition ) ) );\n' +
+          'material.thickness = thickness * ( 0.06 + 1.9 * pow( gFacing, 1.6 ) );'
+        )
+      );
+    }
+  };
+  m.customProgramCacheKey = () => 'gummy';
+  return m;
+}
+
+const eyeGeo = new THREE.SphereGeometry(0.026, 14, 10);
+
+// ---------------------------------------------------------------------------
+// Physics parameters (driven by the wobble slider)
+// ---------------------------------------------------------------------------
+const P = { stiff: 0.18, damp: 0.013, beta: 0.4 };
+function setWobble(w) {
+  P.stiff = 0.32 - 0.22 * w;
+  P.damp = 0.03 - 0.024 * w;
+  P.beta = 0.18 + 0.17 * w;
+}
+setWobble(0.6);
+
+const GRAVITY = 14;
+const SUBSTEPS = 3;
+const MC_RES = 32;
+const MESH_BUDGET_MS = 7;
+const MC_SUB = 12;
+const MC_K = 80 + MC_SUB;
+const MAX_BEARS = 24;
+
+const stats = { bounces: 0, stretch: 1, stretchShown: 1 };
+
+// temps
+const tmpQ = new THREE.Quaternion();
+const tmpQ2 = new THREE.Quaternion();
+const tmpV = new THREE.Vector3();
+const tmpC = new THREE.Vector3();
+const UPV = new THREE.Vector3(0, 1, 0);
+const Rm = new Float64Array(9);
+const Apq = new Float64Array(9);
+const Am = new Float64Array(9);
+const Gm = new Float64Array(9);
+const Sm = new Float64Array(9);
+
+// ---------------------------------------------------------------------------
+// Bear: a soft body with shape matching
+// ---------------------------------------------------------------------------
+class Bear {
+  constructor(flavor, pos, rot, vel = null) {
+    this.flavor = flavor;
+    this.x = new Float32Array(N * 3);
+    this.p = new Float32Array(N * 3);
+    this.v = new Float32Array(N * 3);
+    this.goal = new Float32Array(N * 3);
+    this.pvy = new Float32Array(N);
+    this.floor = new Uint8Array(N);
+    this.lastBuilt = new Float32Array(N * 3).fill(1e9);
+    this.builtC = new THREE.Vector3(1e9, 0, 0);
+    this.builtPos = new THREE.Vector3();
+    this.q = rot.clone();
+    this.c = new THREE.Vector3();
+    this.bound = 1;
+    this.grabbed = -1;
+    this.grabTarget = new THREE.Vector3();
+    this.squash = 1;
+    this.maxLift = 0;
+    this.grounded = false;
+    this.touching = false;
+    this.bounceCd = 0;
+    this.crouch = 0;
+    this.hopTimer = 0;
+    this.idle = 1.5 + Math.random() * 4;
+    this.toppled = 0;
+    this.rightBoost = 0;
+    this.age = 0;
+
+    quatToMat(this.q, Rm);
+    for (let i = 0; i < N; i++) {
+      const qx = REST[i][0] - RCOM[0], qy = REST[i][1] - RCOM[1], qz = REST[i][2] - RCOM[2];
+      const i3 = i * 3;
+      this.x[i3]     = pos.x + Rm[0] * qx + Rm[1] * qy + Rm[2] * qz;
+      this.x[i3 + 1] = pos.y + Rm[3] * qx + Rm[4] * qy + Rm[5] * qz;
+      this.x[i3 + 2] = pos.z + Rm[6] * qx + Rm[7] * qy + Rm[8] * qz;
+      if (vel) { this.v[i3] = vel.x; this.v[i3 + 1] = vel.y; this.v[i3 + 2] = vel.z; }
+    }
+    this.p.set(this.x);
+
+    this.material = makeGummyMaterial(flavor);
+    this.mc = new MarchingCubes(MC_RES, this.material, false, false, 24000);
+    this.mc.isolation = 80;
+    this.mc.frustumCulled = false;
+    scene.add(this.mc);
+
+    const dark = new THREE.Color(flavor.atten).multiplyScalar(flavor.name === 'Pineapple' ? 0.35 : 0.45);
+    this.eyeMat = new THREE.MeshPhysicalMaterial({ color: dark, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05 });
+    this.eyes = [new THREE.Mesh(eyeGeo, this.eyeMat), new THREE.Mesh(eyeGeo, this.eyeMat)];
+    for (const e of this.eyes) scene.add(e);
+
+    this.tint = flavor.tint.join(',');
+    this.dark = flavor.dark.join(',');
+  }
+
+  dispose() {
+    scene.remove(this.mc);
+    this.mc.geometry.dispose();
+    this.material.dispose();
+    for (const e of this.eyes) scene.remove(e);
+    this.eyeMat.dispose();
+  }
+
+  centroid(arr, out) {
+    let x = 0, y = 0, z = 0;
+    for (let i = 0; i < N; i++) {
+      const m = MASS[i], i3 = i * 3;
+      x += m * arr[i3]; y += m * arr[i3 + 1]; z += m * arr[i3 + 2];
+    }
+    return out.set(x / TOTAL_M, y / TOTAL_M, z / TOTAL_M);
+  }
+
+  // forces, prediction, grab, shape matching, floor
+  preStep(h) {
+    const { x, p, v, pvy } = this;
+    const crouching = this.crouch > 0;
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      v[i3 + 1] -= GRAVITY * h;
+      if (crouching && UPPER[i]) v[i3 + 1] -= 16 * h;
+      pvy[i] = v[i3 + 1];
+      p[i3] = x[i3] + v[i3] * h;
+      p[i3 + 1] = x[i3 + 1] + v[i3 + 1] * h;
+      p[i3 + 2] = x[i3 + 2] + v[i3 + 2] * h;
+    }
+    const g = this.grabbed;
+    if (g >= 0) {
+      const g3 = g * 3, t = this.grabTarget;
+      p[g3] += (t.x - p[g3]) * 0.85;
+      p[g3 + 1] += (t.y - p[g3 + 1]) * 0.85;
+      p[g3 + 2] += (t.z - p[g3 + 2]) * 0.85;
+    }
+    this.shapeMatch(h);
+    this.collideWorld();
+  }
+
+  shapeMatch(h) {
+    const { p, goal } = this;
+    const set = SETS[this.grabbed + 1];
+    const Q = set.q, AQQI = set.aqqi;
+    const c = this.c;
+    {
+      let x = 0, y = 0, z = 0;
+      for (let i = 0; i < N; i++) {
+        if (i === set.ex) continue;
+        const m = MASS[i], i3 = i * 3;
+        x += m * p[i3]; y += m * p[i3 + 1]; z += m * p[i3 + 2];
+      }
+      c.set(x / set.m, y / set.m, z / set.m);
+    }
+
+    // Apq = sum m (p - c) q^T
+    Apq.fill(0);
+    for (let i = 0; i < N; i++) {
+      if (i === set.ex) continue;
+      const i3 = i * 3, m = MASS[i];
+      const px = (p[i3] - c.x) * m, py = (p[i3 + 1] - c.y) * m, pz = (p[i3 + 2] - c.z) * m;
+      const qx = Q[i3], qy = Q[i3 + 1], qz = Q[i3 + 2];
+      Apq[0] += px * qx; Apq[1] += px * qy; Apq[2] += px * qz;
+      Apq[3] += py * qx; Apq[4] += py * qy; Apq[5] += py * qz;
+      Apq[6] += pz * qx; Apq[7] += pz * qy; Apq[8] += pz * qz;
+    }
+
+    // Rotation extraction (Müller et al. 2016), warm-started from last frame
+    const q = this.q;
+    for (let it = 0; it < 4; it++) {
+      quatToMat(q, Rm);
+      let ox = 0, oy = 0, oz = 0, d = 0;
+      for (let j = 0; j < 3; j++) {
+        const rx = Rm[j], ry = Rm[3 + j], rz = Rm[6 + j];
+        const ax = Apq[j], ay = Apq[3 + j], az = Apq[6 + j];
+        ox += ry * az - rz * ay; oy += rz * ax - rx * az; oz += rx * ay - ry * ax;
+        d += rx * ax + ry * ay + rz * az;
+      }
+      const s = 1 / (Math.abs(d) + 1e-9);
+      ox *= s; oy *= s; oz *= s;
+      const w = Math.hypot(ox, oy, oz);
+      if (w < 1e-9) break;
+      tmpV.set(ox / w, oy / w, oz / w);
+      tmpQ.setFromAxisAngle(tmpV, w);
+      q.premultiply(tmpQ).normalize();
+    }
+
+    // Self-righting: gently rotate the goal frame back to upright
+    if (this.grabbed < 0) {
+      quatToMat(q, Rm);
+      tmpV.set(Rm[1], Rm[4], Rm[7]).normalize();
+      tmpQ.setFromUnitVectors(tmpV, UPV);
+      tmpQ2.copy(tmpQ).multiply(q);
+      q.slerp(tmpQ2, this.rightBoost > 0 ? 0.22 : this.touching ? 0.05 : 0.004);
+    }
+    quatToMat(q, Rm);
+
+    const sq = this.squash;
+    if (sq < 0.97) {
+      // Pressed down: explicit volume-preserving pancake around the yaw frame
+      const yaw = Math.atan2(Rm[2], Rm[8]);
+      const cy = Math.cos(yaw), sy = Math.sin(yaw);
+      const k = 1 / Math.sqrt(sq);
+      const a = Math.min(0.9, P.stiff * 1.8);
+      for (let i = 0; i < N; i++) {
+        if (i === this.grabbed) continue;
+        const i3 = i * 3;
+        const lx = REST[i][0] - set.com[0], lz = REST[i][2] - set.com[2];
+        const gx = c.x + k * (cy * lx + sy * lz);
+        const gz = c.z + k * (-sy * lx + cy * lz);
+        const gy = Math.max(CRAD[i], sq * REST[i][1]);
+        p[i3] += (gx - p[i3]) * a;
+        p[i3 + 1] += (gy - p[i3 + 1]) * a;
+        p[i3 + 2] += (gz - p[i3 + 2]) * a;
+      }
+      return;
+    }
+
+    // Linear (volume-normalized) part blended with the rigid part
+    for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++) {
+      Am[r * 3 + col] = Apq[r * 3] * AQQI[col] + Apq[r * 3 + 1] * AQQI[3 + col] + Apq[r * 3 + 2] * AQQI[6 + col];
+    }
+    // Keep only the symmetric stretch S = sym(R^T A): the skew part acts like an
+    // unrestrained rotation and would let the bear topple. The rest shape is
+    // shallow in z, so z couplings are trusted less and everything is clamped.
+    for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++) {
+      Sm[r * 3 + col] = Rm[r] * Am[col] + Rm[3 + r] * Am[3 + col] + Rm[6 + r] * Am[6 + col];
+    }
+    for (let r = 0; r < 3; r++) for (let col = r; col < 3; col++) {
+      let v = (Sm[r * 3 + col] + Sm[col * 3 + r]) * 0.5;
+      if (r === col) v = Math.min(2.2, Math.max(0.45, r === 2 ? 1 + (v - 1) * 0.35 : v));
+      else v = Math.min(0.35, Math.max(-0.35, r === 2 || col === 2 ? v * 0.2 : v));
+      Sm[r * 3 + col] = Sm[col * 3 + r] = v;
+    }
+    const det = det3(Sm);
+    let beta = P.beta;
+    if (det > 0.05) {
+      const n = 1 / Math.cbrt(det);
+      for (let k = 0; k < 9; k++) Sm[k] *= n;
+      for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++) {
+        Am[r * 3 + col] = Rm[r * 3] * Sm[col] + Rm[r * 3 + 1] * Sm[3 + col] + Rm[r * 3 + 2] * Sm[6 + col];
+      }
+    } else beta = 0;
+    for (let k = 0; k < 9; k++) Gm[k] = beta * Am[k] + (1 - beta) * Rm[k];
+
+    const g = this.grabbed;
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      const qx = Q[i3], qy = Q[i3 + 1], qz = Q[i3 + 2];
+      const gx = c.x + Gm[0] * qx + Gm[1] * qy + Gm[2] * qz;
+      const gy = c.y + Gm[3] * qx + Gm[4] * qy + Gm[5] * qz;
+      const gz = c.z + Gm[6] * qx + Gm[7] * qy + Gm[8] * qz;
+      goal[i3] = gx; goal[i3 + 1] = gy; goal[i3 + 2] = gz;
+      if (i === g) continue;
+      // while held, the jelly goes slack so the grabbed part can really stretch
+      const a = Math.min(0.92, P.stiff * STIFF[i] * (g >= 0 ? 0.75 : 1));
+      p[i3] += (gx - p[i3]) * a;
+      p[i3 + 1] += (gy - p[i3 + 1]) * a;
+      p[i3 + 2] += (gz - p[i3 + 2]) * a;
+    }
+
+    // Rubber tension: the rest of the bear leans after a stretched grab point
+    if (g >= 0) {
+      const g3 = g * 3;
+      const dx = p[g3] - goal[g3], dy = p[g3 + 1] - goal[g3 + 1], dz = p[g3 + 2] - goal[g3 + 2];
+      const d = Math.hypot(dx, dy, dz);
+      const excess = d - 0.22;
+      if (excess > 0) {
+        const s = Math.min(excess, 2.5) * 34 * h * h / d;
+        for (let i = 0; i < N; i++) {
+          if (i === g) continue;
+          const i3 = i * 3;
+          p[i3] += dx * s; p[i3 + 1] += dy * s; p[i3 + 2] += dz * s;
+        }
+      }
+    }
+  }
+
+  collideWorld(first = true) {
+    const { x, p, floor } = this;
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3, r = CRAD[i];
+      if (first) floor[i] = 0;
+      if (p[i3 + 1] < r + 1e-4) {
+        floor[i] = 1;
+      }
+      if (p[i3 + 1] < r) {
+        p[i3 + 1] = r;
+        const fr = 0.3;
+        p[i3] = x[i3] + (p[i3] - x[i3]) * (1 - fr);
+        p[i3 + 2] = x[i3 + 2] + (p[i3 + 2] - x[i3 + 2]) * (1 - fr);
+      }
+      if (p[i3] < BOUNDS.xMin + r) p[i3] = BOUNDS.xMin + r; else if (p[i3] > BOUNDS.xMax - r) p[i3] = BOUNDS.xMax - r;
+      if (p[i3 + 2] < BOUNDS.zMin + r) p[i3 + 2] = BOUNDS.zMin + r; else if (p[i3 + 2] > BOUNDS.zMax - r) p[i3 + 2] = BOUNDS.zMax - r;
+    }
+    if (this.grabbed >= 0) {
+      // the grabbed point keeps following the hand even after collisions
+      const g3 = this.grabbed * 3;
+      p[g3 + 1] = Math.max(p[g3 + 1], CRAD[this.grabbed]);
+    }
+  }
+
+  updateBound() {
+    const c = this.centroid(this.p, this.c);
+    let r = 0;
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      const d = Math.hypot(this.p[i3] - c.x, this.p[i3 + 1] - c.y, this.p[i3 + 2] - c.z) + CRAD[i];
+      if (d > r) r = d;
+    }
+    this.bound = r;
+  }
+
+  postStep(h) {
+    const { x, p, v, pvy, floor } = this;
+    const inv = 1 / h;
+    let mvx = 0, mvy = 0, mvz = 0, impact = 0, onFloor = false;
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      v[i3] = (p[i3] - x[i3]) * inv;
+      v[i3 + 1] = (p[i3 + 1] - x[i3 + 1]) * inv;
+      v[i3 + 2] = (p[i3 + 2] - x[i3 + 2]) * inv;
+      if (floor[i]) {
+        onFloor = true;
+        if (pvy[i] < -1.4) {
+          v[i3 + 1] = Math.max(v[i3 + 1], -pvy[i] * 0.32);
+          impact = Math.max(impact, -pvy[i]);
+        }
+      }
+      x[i3] = p[i3]; x[i3 + 1] = p[i3 + 1]; x[i3 + 2] = p[i3 + 2];
+      const m = MASS[i];
+      mvx += v[i3] * m; mvy += v[i3 + 1] * m; mvz += v[i3 + 2] * m;
+    }
+    mvx /= TOTAL_M; mvy /= TOTAL_M; mvz /= TOTAL_M;
+    // damp only the internal wobble, not the flight
+    const k = 1 - P.damp;
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      v[i3] = (mvx + (v[i3] - mvx) * k) * 0.9995;
+      v[i3 + 1] = (mvy + (v[i3 + 1] - mvy) * k) * 0.9995;
+      v[i3 + 2] = (mvz + (v[i3 + 2] - mvz) * k) * 0.9995;
+    }
+    if (onFloor) this.grounded = true;
+    if (impact > 3.2 && this.bounceCd <= 0 && this.grabbed < 0) {
+      stats.bounces++;
+      this.bounceCd = 0.3;
+    }
+  }
+
+  jump(power, dx = 0, dz = 0, spin = 0) {
+    const c = this.centroid(this.x, this.c);
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      const rx = this.x[i3] - c.x, rz = this.x[i3 + 2] - c.z;
+      this.v[i3] += dx + spin * rz;
+      this.v[i3 + 1] += power * (UPPER[i] ? 1.3 : i === BODY ? 1.12 : 1);
+      this.v[i3 + 2] += dz - spin * rx;
+    }
+  }
+
+  kinetic() {
+    let e = 0;
+    for (let i = 0; i < this.v.length; i++) e += this.v[i] * this.v[i];
+    return e / N;
+  }
+
+  tick(dt) {
+    this.age += dt;
+    this.bounceCd -= dt;
+    if (this.grabbed >= 0) return;
+    if (this.squash < 1) this.squash = Math.min(1, this.squash + dt * 4);
+    // A bear left lying on its side wriggles back onto its feet with a little hop
+    this.rightBoost -= dt;
+    const q = this.q, upY = 1 - 2 * (q.x * q.x + q.z * q.z);
+    if (this.touching && upY < 0.8 && this.rightBoost <= 0) {
+      this.toppled += dt;
+      if (this.toppled > 0.7 && this.kinetic() < 1.5) {
+        this.jump(2.4 + Math.random() * 0.8, 0, 0, (Math.random() - 0.5) * 2);
+        this.rightBoost = 0.6;
+        this.toppled = 0;
+      }
+    } else if (upY >= 0.8) this.toppled = 0;
+    if (this.hopTimer > 0) {
+      this.hopTimer -= dt;
+      if (this.hopTimer <= 0) this.jump(2.2 + Math.random() * 0.7, 0, 0, (Math.random() - 0.5) * 2);
+    }
+    if (this.crouch > 0) {
+      this.crouch -= dt;
+      if (this.crouch <= 0) {
+        const a = Math.random() * Math.PI * 2, s = 0.25 + Math.random() * 0.6;
+        this.jump(2.6 + Math.random() * 1.8, Math.cos(a) * s, Math.sin(a) * s, (Math.random() - 0.5) * 3);
+      }
+      return;
+    }
+    this.idle -= dt;
+    if (this.idle <= 0) {
+      if (this.touching && this.kinetic() < 0.25) {
+        this.crouch = 0.14;
+        this.idle = 2.5 + Math.random() * 6;
+      } else this.idle = 0.5;
+    }
+  }
+
+  // ------------------------------------------------------------------ render
+  // How much the shape changed since the last surface build (translation excluded)
+  shapeDelta() {
+    const x = this.x, lb = this.lastBuilt;
+    const c = this.centroid(x, tmpC);
+    const tx = c.x - this.builtC.x, ty = c.y - this.builtC.y, tz = c.z - this.builtC.z;
+    let m = 0;
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      m = Math.max(m, Math.abs(x[i3] - lb[i3] - tx), Math.abs(x[i3 + 1] - lb[i3 + 1] - ty), Math.abs(x[i3 + 2] - lb[i3 + 2] - tz));
+    }
+    return m;
+  }
+
+  // Cheap path when the surface is not rebuilt this frame: carry it along rigidly
+  follow() {
+    const c = this.centroid(this.x, tmpC);
+    this.mc.position.copy(this.builtPos).add(c).sub(this.builtC);
+  }
+
+  updateMesh() {
+    const x = this.x;
+    this.lastBuilt.set(x);
+    this.centroid(x, this.builtC);
+
+    let minX = 1e9, minY = 1e9, minZ = 1e9, maxX = -1e9, maxY = -1e9, maxZ = -1e9;
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      minX = Math.min(minX, x[i3]); maxX = Math.max(maxX, x[i3]);
+      minY = Math.min(minY, x[i3 + 1]); maxY = Math.max(maxY, x[i3 + 1]);
+      minZ = Math.min(minZ, x[i3 + 2]); maxZ = Math.max(maxZ, x[i3 + 2]);
+    }
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
+    const B = Math.max(1.2, maxX - minX + 0.72, maxY - minY + 0.72, maxZ - minZ + 0.72);
+    const inv = 1 / B;
+    const mc = this.mc;
+    mc.reset();
+    const bulge = 1 + 0.28 * (1 - this.squash);
+    const add = (px, py, pz, r) => {
+      const rn = r * bulge * inv;
+      mc.addBall((px - cx) * inv + 0.5, (py - cy) * inv + 0.5, (pz - cz) * inv + 0.5, MC_K * rn * rn, MC_SUB);
+    };
+
+    for (let i = 0; i < N; i++) add(x[i * 3], x[i * 3 + 1], x[i * 3 + 2], RAD[i] * 0.86);
+
+    let maxStretch = 1;
+    for (let s = 0; s < STRANDS.length; s++) {
+      const [a, b, r0] = STRANDS[s];
+      const a3 = a * 3, b3 = b * 3;
+      const dx = x[b3] - x[a3], dy = x[b3 + 1] - x[a3 + 1], dz = x[b3 + 2] - x[a3 + 2];
+      const len = Math.hypot(dx, dy, dz);
+      const ratio = len / STRAND_REST[s];
+      if (ratio > maxStretch) maxStretch = ratio;
+      // thinner as it stretches (constant volume tube)
+      const r = r0 * 0.62 / Math.sqrt(Math.min(Math.max(ratio, 0.55), 6));
+      const count = Math.min(10, Math.max(1, Math.round(len / (r * 1.25))));
+      for (let k = 1; k <= count; k++) {
+        const t = k / (count + 1);
+        add(x[a3] + dx * t, x[a3 + 1] + dy * t, x[a3 + 2] + dz * t, r);
+      }
+    }
+    if (maxStretch > stats.stretch) stats.stretch = maxStretch;
+
+    // molded eye and nose bumps
+    for (const e of this.eyes) add(e.position.x, e.position.y, e.position.z, 0.032);
+    add(this.nose.x, this.nose.y, this.nose.z, 0.04);
+
+    if (mc.update) mc.update(); else mc.render();
+    mc.position.set(cx, cy, cz);
+    this.builtPos.set(cx, cy, cz);
+    mc.scale.setScalar(B / 2);
+    this.material.thickness = 0.4 / (B / 2);
+  }
+
+  updateEyes() {
+    const x = this.x;
+    const h3 = HEAD * 3, b3 = BODY * 3, s3 = SNOUT * 3;
+    const up = tmpV.set(x[h3] - x[b3], x[h3 + 1] - x[b3 + 1], x[h3 + 2] - x[b3 + 2]).normalize();
+    const fwd = new THREE.Vector3(x[s3] - x[h3], x[s3 + 1] - x[h3 + 1], x[s3 + 2] - x[h3 + 2]);
+    fwd.addScaledVector(up, -fwd.dot(up)).normalize();
+    const right = new THREE.Vector3().crossVectors(up, fwd);
+    const hx = x[h3], hy = x[h3 + 1], hz = x[h3 + 2];
+    for (let k = 0; k < 2; k++) {
+      const side = k === 0 ? -1 : 1;
+      this.eyes[k].position.set(
+        hx + up.x * 0.055 + fwd.x * 0.165 + right.x * 0.078 * side,
+        hy + up.y * 0.055 + fwd.y * 0.165 + right.y * 0.078 * side,
+        hz + up.z * 0.055 + fwd.z * 0.165 + right.z * 0.078 * side
+      );
+    }
+    this.nose = this.nose || new THREE.Vector3();
+    this.nose.set(x[s3] + fwd.x * 0.075 + up.x * 0.025, x[s3 + 1] + fwd.y * 0.075 + up.y * 0.025, x[s3 + 2] + fwd.z * 0.075 + up.z * 0.025);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// World
+// ---------------------------------------------------------------------------
+const bears = [];
+
+function spawnBear(flavor, pos, rot, vel) {
+  const b = new Bear(flavor, pos, rot, vel);
+  bears.push(b);
+  while (bears.length > MAX_BEARS) {
+    const idx = bears.findIndex((o) => o.grabbed < 0);
+    if (idx < 0) break;
+    bears[idx].dispose();
+    bears.splice(idx, 1);
+  }
+  return b;
+}
+
+function randomRot() {
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(
+    (Math.random() - 0.5) * 2.4, Math.random() * Math.PI * 2, (Math.random() - 0.5) * 2.4
+  ));
+}
+
+function dropBear(flavor, delay = 0) {
+  setTimeout(() => {
+    const pos = new THREE.Vector3((BOUNDS.xMin + BOUNDS.xMax) / 2 + (Math.random() - 0.5) * 1.6, 3.4 + Math.random() * 1.4, (Math.random() - 0.5) * 0.9);
+    const vel = new THREE.Vector3((Math.random() - 0.5) * 1.2, -1 - Math.random(), (Math.random() - 0.5) * 1.2);
+    spawnBear(flavor, pos, randomRot(), vel);
+  }, delay);
+}
+
+function pour() {
+  const n = 6 + Math.floor(Math.random() * 2);
+  for (let k = 0; k < n; k++) dropBear(FLAVORS[Math.floor(Math.random() * FLAVORS.length)], k * 120);
+}
+
+// initial row, one of each flavour
+FLAVORS.forEach((f, i) => {
+  const x = (BOUNDS.xMin + BOUNDS.xMax) / 2 + (i - 2) * 1.0;
+  const rot = new THREE.Quaternion().setFromAxisAngle(UPV, (Math.random() - 0.5) * 0.7 - x * 0.08);
+  spawnBear(f, new THREE.Vector3(x, RCOM[1] + 0.001, 0.35 + (i % 2) * 0.25), rot);
+});
+
+function collideBears() {
+  const n = bears.length;
+  for (let a = 0; a < n; a++) {
+    const A = bears[a];
+    for (let b = a + 1; b < n; b++) {
+      const B = bears[b];
+      const dc = A.c.distanceTo(B.c);
+      if (dc > A.bound + B.bound) continue;
+      const pa = A.p, pb = B.p;
+      for (let i = 0; i < N; i++) {
+        const i3 = i * 3;
+        const wi = i === A.grabbed ? 0 : 1 / MASS[i];
+        for (let j = 0; j < N; j++) {
+          const j3 = j * 3;
+          const dx = pa[i3] - pb[j3], dy = pa[i3 + 1] - pb[j3 + 1], dz = pa[i3 + 2] - pb[j3 + 2];
+          const rs = CRAD[i] + CRAD[j];
+          const d2 = dx * dx + dy * dy + dz * dz;
+          if (d2 >= rs * rs || d2 < 1e-10) continue;
+          const wj = j === B.grabbed ? 0 : 1 / MASS[j];
+          const ws = wi + wj;
+          if (ws === 0) continue;
+          const d = Math.sqrt(d2);
+          const s = (rs - d) / d / ws;
+          pa[i3] += dx * s * wi; pa[i3 + 1] += dy * s * wi; pa[i3 + 2] += dz * s * wi;
+          pb[j3] -= dx * s * wj; pb[j3 + 1] -= dy * s * wj; pb[j3 + 2] -= dz * s * wj;
+          A.touching = B.touching = true;
+        }
+      }
+    }
+  }
+}
+
+function step(h) {
+  for (const b of bears) { b.touching = b.grounded; b.grounded = false; b.preStep(h); b.updateBound(); }
+  collideBears();
+  collideBears();
+  for (const b of bears) { b.collideWorld(false); b.postStep(h); if (b.grounded) b.touching = true; }
+}
+
+// ---------------------------------------------------------------------------
+// Shadows (painted into the table texture)
+// ---------------------------------------------------------------------------
+function blob(x, z, rx, rz, rgb, a) {
+  if (a < 0.004) return;
+  const px = (x / TABLE + 0.5) * SHADOW_RES, py = (z / TABLE + 0.5) * SHADOW_RES;
+  sctx.setTransform(rx * PPU, 0, 0, rz * PPU, px, py);
+  const g = sctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  g.addColorStop(0, `rgba(${rgb},${a})`);
+  g.addColorStop(0.45, `rgba(${rgb},${a * 0.7})`);
+  g.addColorStop(1, `rgba(${rgb},0)`);
+  sctx.fillStyle = g;
+  sctx.fillRect(-1, -1, 2, 2);
+}
+
+function drawShadows() {
+  sctx.setTransform(1, 0, 0, 1, 0, 0);
+  sctx.globalCompositeOperation = 'source-over';
+  sctx.fillStyle = '#ffffff';
+  sctx.fillRect(0, 0, SHADOW_RES, SHADOW_RES);
+  sctx.globalCompositeOperation = 'multiply';
+  for (const b of bears) {
+    const x = b.x;
+    const c = b.centroid(x, b.c);
+    let minX = 1e9, maxX = -1e9, minZ = 1e9, maxZ = -1e9;
+    for (let i = 0; i < N; i++) {
+      minX = Math.min(minX, x[i * 3]); maxX = Math.max(maxX, x[i * 3]);
+      minZ = Math.min(minZ, x[i * 3 + 2]); maxZ = Math.max(maxZ, x[i * 3 + 2]);
+    }
+    const lift = Math.max(0, c.y - RCOM[1]);
+    const fade = 1 / (1 + lift * 1.6);
+    const off = 0.12 + c.y * 0.3;
+    const ox = off * 0.55, oz = -off * 0.6;
+    // wide colored glow (light filtered through the candy)
+    blob(c.x + ox, c.z + oz, ((maxX - minX) / 2 + 0.42) * (1 + lift * 0.35), ((maxZ - minZ) / 2 + 0.36) * (1 + lift * 0.35), b.tint, 0.62 * fade);
+    // contact shadow per mass point
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      const hgt = x[i3 + 1] - CRAD[i];
+      if (hgt > 0.6) continue;
+      const k = 1 - hgt / 0.6;
+      const r = RAD[i] * (1.5 + hgt);
+      blob(x[i3] + ox * 0.35, x[i3 + 2] + oz * 0.35, r, r, b.dark, 0.38 * k * k);
+    }
+  }
+  sctx.setTransform(1, 0, 0, 1, 0, 0);
+  shadowTex.needsUpdate = true;
+}
+
+// ---------------------------------------------------------------------------
+// Interaction
+// ---------------------------------------------------------------------------
+const cursorEl = document.getElementById('cursor');
+const card = document.getElementById('card');
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const dragPlane = new THREE.Plane();
+const grab = { bear: null, idx: -1, vel: new THREE.Vector3(), last: new THREE.Vector3(), lastT: 0, offset: new THREE.Vector3() };
+const proj = new THREE.Vector3();
+
+function pick(clientX, clientY) {
+  const halfH = innerHeight / 2;
+  const f = 1 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  let best = null, bestDepth = 1e9;
+  for (const b of bears) {
+    for (let i = 0; i < N; i++) {
+      const i3 = i * 3;
+      proj.set(b.x[i3], b.x[i3 + 1], b.x[i3 + 2]);
+      const depth = proj.distanceTo(camera.position);
+      proj.project(camera);
+      const sx = (proj.x + 1) / 2 * innerWidth, sy = (1 - proj.y) / 2 * innerHeight;
+      const pr = (RAD[i] * f / depth) * halfH * 1.15 + 8;
+      const d = Math.hypot(sx - clientX, sy - clientY);
+      if (d < pr) {
+        const score = depth + (d / pr) * 0.25;
+        if (score < bestDepth) { bestDepth = score; best = { bear: b, idx: i }; }
+      }
+    }
+  }
+  return best;
+}
+
+function pointerToPlane(clientX, clientY, out) {
+  ndc.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  return raycaster.ray.intersectPlane(dragPlane, out);
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  const hit = pick(e.clientX, e.clientY);
+  if (!hit) return;
+  canvas.setPointerCapture(e.pointerId);
+  const b = hit.bear, i3 = hit.idx * 3;
+  const pt = new THREE.Vector3(b.x[i3], b.x[i3 + 1], b.x[i3 + 2]);
+  const n = camera.getWorldDirection(new THREE.Vector3()).negate();
+  dragPlane.setFromNormalAndCoplanarPoint(n, pt);
+  const onPlane = pointerToPlane(e.clientX, e.clientY, new THREE.Vector3()) || pt.clone();
+  grab.offset.copy(pt).sub(onPlane);
+  grab.bear = b; grab.idx = hit.idx;
+  grab.last.copy(pt); grab.lastT = performance.now(); grab.vel.set(0, 0, 0);
+  b.grabbed = hit.idx;
+  b.grabTarget.copy(pt);
+  b.maxLift = 0;
+  b.crouch = 0; b.hopTimer = 0;
+  cursorEl.className = 'grab';
+});
+
+const tmpTarget = new THREE.Vector3();
+canvas.addEventListener('pointermove', (e) => {
+  cursorEl.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+  if (!grab.bear) {
+    cursorEl.className = pick(e.clientX, e.clientY) ? 'hover' : '';
+    return;
+  }
+  if (!pointerToPlane(e.clientX, e.clientY, tmpTarget)) return;
+  tmpTarget.add(grab.offset);
+  const b = grab.bear, i = grab.idx;
+  tmpTarget.y = Math.max(tmpTarget.y, CRAD[i] * 0.6);
+  // keep the stretch inside rubber range
+  const c = b.centroid(b.x, new THREE.Vector3());
+  const d = tmpTarget.distanceTo(c);
+  if (d > 3.2) tmpTarget.sub(c).multiplyScalar(3.2 / d).add(c);
+  tmpTarget.x = THREE.MathUtils.clamp(tmpTarget.x, BOUNDS.xMin, BOUNDS.xMax);
+  tmpTarget.z = THREE.MathUtils.clamp(tmpTarget.z, BOUNDS.zMin, BOUNDS.zMax);
+
+  const now = performance.now();
+  const dt = Math.max(1, now - grab.lastT) / 1000;
+  const inst = tmpTarget.clone().sub(grab.last).divideScalar(dt);
+  grab.vel.lerp(inst, 0.45);
+  grab.last.copy(tmpTarget); grab.lastT = now;
+  b.grabTarget.copy(tmpTarget);
+
+  b.maxLift = Math.max(b.maxLift, tmpTarget.y - REST[i][1]);
+  // pressing an upper part down pancakes the bear
+  if (UPPER[i] && b.touching) {
+    const s = THREE.MathUtils.clamp(tmpTarget.y / REST[i][1], 0.24, 1);
+    b.squash = s < 0.9 ? s : 1;
+  } else b.squash = 1;
+});
+
+function release(e) {
+  if (!grab.bear) return;
+  const b = grab.bear;
+  // stale velocity if the pointer stopped before release
+  if (performance.now() - grab.lastT > 80) grab.vel.multiplyScalar(0.1);
+  const vel = grab.vel.clone();
+  if (vel.length() > 14) vel.setLength(14);
+  for (let i = 0; i < N; i++) {
+    const i3 = i * 3;
+    const k = i === grab.idx ? 0.4 : 0.7;
+    b.v[i3] += vel.x * k; b.v[i3 + 1] += vel.y * k; b.v[i3 + 2] += vel.z * k;
+  }
+  if (b.squash < 0.85) {
+    b.jump(1.4 + 4.2 * (1 - b.squash), 0, 0, (Math.random() - 0.5) * 2);
+  } else if (b.maxLift > 0.45 && vel.length() < 5) {
+    b.hopTimer = 0.36;
+  }
+  b.squash = 1;
+  b.grabbed = -1;
+  b.idle = 2 + Math.random() * 3;
+  grab.bear = null; grab.idx = -1;
+  cursorEl.className = e && pick(e.clientX, e.clientY) ? 'hover' : '';
+}
+canvas.addEventListener('pointerup', release);
+canvas.addEventListener('pointercancel', release);
+
+card.addEventListener('pointerenter', () => { if (!grab.bear) cursorEl.className = 'ui'; });
+card.addEventListener('pointerleave', () => { if (!grab.bear) cursorEl.className = ''; });
+card.addEventListener('pointermove', (e) => { cursorEl.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`; });
+
+// UI
+const swatchesEl = document.getElementById('swatches');
+for (const f of FLAVORS) {
+  const btn = document.createElement('button');
+  btn.className = 'swatch';
+  btn.style.setProperty('--c', f.swatch);
+  btn.innerHTML = `<i></i><span>${f.name}</span>`;
+  btn.title = `Drop a ${f.name.toLowerCase()} bear`;
+  btn.addEventListener('click', () => dropBear(f));
+  swatchesEl.appendChild(btn);
+}
+const wobble = document.getElementById('wobble');
+const wobbleVal = document.getElementById('wobbleVal');
+function onWobble() {
+  const w = wobble.value / 100;
+  setWobble(w);
+  wobbleVal.textContent = wobble.value;
+  wobble.style.setProperty('--p', `${wobble.value}%`);
+}
+wobble.addEventListener('input', onWobble);
+onWobble();
+document.getElementById('pour').addEventListener('click', pour);
+const stretchEl = document.getElementById('stretch');
+const bouncesEl = document.getElementById('bounces');
+
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  frameCamera();
+});
+
+// ---------------------------------------------------------------------------
+// Loop
+// ---------------------------------------------------------------------------
+let last = performance.now();
+let lastStretchText = '', lastBounceText = '';
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 1 / 30);
+  last = now;
+  const h = dt / SUBSTEPS;
+  for (let s = 0; s < SUBSTEPS; s++) step(h);
+  for (const b of bears) b.tick(dt);
+
+  stats.stretch = 1;
+  // Rebuild the most deformed surfaces first within a time budget; the rest
+  // are translated along until their turn comes.
+  const t0 = performance.now();
+  const queue = [];
+  for (const b of bears) {
+    b.updateEyes();
+    const d = b.grabbed >= 0 ? 1e9 : b.shapeDelta();
+    if (d > 0.0006) queue.push([b, d]); else b.follow();
+  }
+  queue.sort((a, b) => b[1] - a[1]);
+  for (const [b] of queue) {
+    if (b.grabbed < 0 && performance.now() - t0 > MESH_BUDGET_MS) b.follow();
+    else b.updateMesh();
+  }
+  // strands of sleeping bears are not rebuilt; they are at rest anyway
+  stats.stretchShown += (stats.stretch - stats.stretchShown) * 0.25;
+  const st = `${Math.round(stats.stretchShown * 100)}%`;
+  if (st !== lastStretchText) { stretchEl.textContent = st; lastStretchText = st; }
+  const bt = String(stats.bounces);
+  if (bt !== lastBounceText) { bouncesEl.textContent = bt; lastBounceText = bt; }
+
+  drawShadows();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

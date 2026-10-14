@@ -1,0 +1,1448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gummy / Bears.</title>
+<style>
+  :root{
+    --ink:#0c0c0d;
+    --paper:#ffffff;
+    --muted:#8b8b91;
+    --hair:#e7e7e5;
+    --accent:#d81b30;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; padding:0; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font:400 14px/1.55 "Helvetica Neue", Helvetica, Inter, Arial, sans-serif;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    cursor:none;
+  }
+  canvas{ position:fixed; inset:0; display:block; touch-action:none; }
+
+  /* ---------- masthead ---------- */
+  .masthead{
+    position:fixed; top:44px; left:52px; z-index:2;
+    max-width:min(48vw,660px); pointer-events:none;
+  }
+  .eyebrow{
+    display:flex; align-items:center; gap:10px;
+    font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted);
+  }
+  .eyebrow::after{ content:""; flex:1; height:1px; background:var(--hair); max-width:120px; }
+  h1{
+    font-family:"Didot","Bodoni MT","Playfair Display","Times New Roman",Times,serif;
+    font-style:italic; font-weight:400;
+    font-size:clamp(54px, 8.4vw, 128px);
+    line-height:.85; letter-spacing:-.025em;
+    margin:.14em 0 .22em;
+  }
+  h1 span{ display:block; }
+  h1 .slash{ color:var(--accent); font-size:.82em; }
+  .lede{
+    margin:0; max-width:33ch; color:#4c4c52; font-size:13.5px; line-height:1.62;
+  }
+  .hint{
+    position:fixed; left:52px; bottom:38px; z-index:2; pointer-events:none;
+    font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);
+  }
+  .hint b{ color:var(--ink); font-weight:500; }
+  .credit{
+    position:fixed; right:52px; bottom:38px; z-index:2; pointer-events:none;
+    font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); text-align:right;
+  }
+
+  /* ---------- panel ---------- */
+  .panel{
+    position:fixed; top:44px; right:44px; z-index:3; width:296px;
+    background:rgba(255,255,255,.66);
+    backdrop-filter:blur(18px) saturate(1.25);
+    -webkit-backdrop-filter:blur(18px) saturate(1.25);
+    border:1px solid var(--hair);
+    box-shadow:0 26px 60px -34px rgba(12,12,13,.45);
+    padding:20px 20px 18px;
+  }
+  .prow{ display:flex; align-items:baseline; justify-content:space-between; }
+  .plabel{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+  .pindex{ font-size:10px; letter-spacing:.14em; color:var(--muted); }
+  .rule{ height:1px; background:var(--hair); margin:12px 0 14px; }
+
+  .swatches{ display:flex; gap:9px; }
+  .sw{
+    flex:1; border:0; background:none; padding:0; cursor:auto;
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+  }
+  .sw i{
+    display:block; width:100%; aspect-ratio:1/1; border-radius:50%;
+    box-shadow:inset 0 -6px 10px rgba(0,0,0,.16), inset 0 4px 8px rgba(255,255,255,.7), 0 2px 6px rgba(0,0,0,.10);
+    transition:transform .22s cubic-bezier(.2,.9,.25,1), box-shadow .22s;
+  }
+  .sw span{ font-size:8.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+  .sw:hover i{ transform:translateY(-3px) scale(1.06); }
+  .sw[aria-pressed="true"] i{ box-shadow:inset 0 -6px 10px rgba(0,0,0,.16), inset 0 4px 8px rgba(255,255,255,.7), 0 0 0 1.5px var(--ink), 0 3px 10px rgba(0,0,0,.16); }
+  .sw[aria-pressed="true"] span{ color:var(--ink); }
+
+  .slider{ display:flex; align-items:center; gap:12px; margin:2px 0 4px; }
+  .slider label{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); width:62px; }
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; flex:1; height:1px; background:#d6d6d3; outline:none; cursor:auto;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:13px; height:13px; border-radius:50%;
+    background:var(--ink); border:0; cursor:grab; transition:transform .15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover{ transform:scale(1.22); }
+  input[type=range]::-moz-range-thumb{ width:13px; height:13px; border-radius:50%; background:var(--ink); border:0; }
+  .slider output{ font-size:11px; color:var(--ink); font-variant-numeric:tabular-nums; width:30px; text-align:right; }
+
+  .stats{ display:flex; gap:18px; margin:16px 0 4px; }
+  .stat{ flex:1; }
+  .stat .k{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+  .stat .v{
+    font-family:"Didot","Bodoni MT","Playfair Display","Times New Roman",Times,serif;
+    font-style:italic; font-size:38px; line-height:1.05; letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .v em{ font-style:italic; font-size:20px; color:var(--muted); }
+
+  button.pour{
+    margin-top:16px; width:100%; border:1px solid var(--ink); background:var(--ink); color:#fff;
+    font:500 10.5px/1 "Helvetica Neue",Helvetica,Arial,sans-serif; letter-spacing:.2em; text-transform:uppercase;
+    padding:14px 16px; cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+    transition:background .2s, color .2s, transform .12s;
+  }
+  button.pour:hover{ background:var(--accent); border-color:var(--accent); }
+  button.pour:active{ transform:translateY(1px); }
+  button.pour b{ font-weight:400; opacity:.65; }
+
+  /* ---------- custom cursor ---------- */
+  .cursor{
+    position:fixed; left:0; top:0; z-index:9; width:24px; height:24px; margin:-12px 0 0 -12px;
+    border:1.1px solid rgba(12,12,13,.5); border-radius:50%; pointer-events:none;
+    transition:width .24s cubic-bezier(.2,.9,.25,1), height .24s cubic-bezier(.2,.9,.25,1),
+               margin .24s cubic-bezier(.2,.9,.25,1), background-color .24s, border-color .24s, opacity .2s;
+    will-change:transform;
+  }
+  .cursor::after{
+    content:""; position:absolute; inset:0; margin:auto; width:2.5px; height:2.5px; border-radius:50%;
+    background:rgba(12,12,13,.65); transition:background-color .24s;
+  }
+  .cursor.grab{
+    width:62px; height:62px; margin:-31px 0 0 -31px;
+    background:rgba(216,27,48,.10); border-color:rgba(216,27,48,.65);
+  }
+  .cursor.grab::after{ background:rgba(216,27,48,.9); }
+  .cursor.ui{ opacity:0; }
+  @media (hover:none){ body{ cursor:auto; } .cursor{ display:none; } }
+  @media (max-width:900px){
+    .masthead{ top:24px; left:24px; max-width:70vw; }
+    .panel{ top:auto; bottom:16px; right:16px; left:16px; width:auto; }
+    .hint,.credit{ display:none; }
+  }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="eyebrow">Confectionery, Vol.&nbsp;01 — Soft&nbsp;Matter</div>
+    <h1><span>Gummy</span><span><i class="slash">/</i> Bears.</span></h1>
+    <p class="lede">Hand-poured implicit-surface candy with a jelly spine. Grab a head, stretch the neck,
+      squash it flat, fling it at its friends. It always bounces back.</p>
+  </header>
+
+  <aside class="panel" id="panel">
+    <div class="prow"><span class="plabel">Flavors</span><span class="pindex">five</span></div>
+    <div class="rule"></div>
+    <div class="swatches" id="swatches"></div>
+    <div class="rule"></div>
+    <div class="slider">
+      <label for="wobble">Wobble</label>
+      <input id="wobble" type="range" min="0" max="100" value="55" />
+      <output id="wobbleOut">55</output>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">Stretch</div><div class="v" id="stretch">1.00<em>×</em></div></div>
+      <div class="stat"><div class="k">Bounces</div><div class="v" id="bounces">0</div></div>
+    </div>
+    <button class="pour" id="pour">Pour more bears <b>↓</b></button>
+  </aside>
+
+  <div class="hint"><b>Drag</b> a bear &nbsp;·&nbsp; <b>pull</b> to stretch &nbsp;·&nbsp; <b>fling</b> to throw</div>
+  <div class="credit">Gummy&nbsp;/&nbsp;Bears — batch № <span id="batch">001</span></div>
+  <div class="cursor" id="cursor"></div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
+
+/* =====================================================================================
+   0. Configuration
+   ===================================================================================== */
+const ISO        = 0.22;                          // metaball isolevel
+const T_SURF     = Math.cbrt(ISO);                // (1-t^2)^3 = ISO  ->  t
+const VIS_FACTOR = 1 / Math.sqrt(1 - T_SURF*T_SURF);   // field radius / visible radius
+
+const GRAV   = -19.0;      // world units / s^2  (candy-scale gravity)
+const FIXED  = 1 / 240;    // physics timestep
+const MAX_BEARNS = 14;
+
+const NODE_DEF = [
+  // name      x      y      z     visRadius  mass
+  ['body',   0.00,  0.30, -0.02,   0.300,   1.50],
+  ['belly',  0.00,  0.00,  0.03,   0.318,   1.50],
+  ['head',   0.00,  0.68,  0.00,   0.275,   1.00],
+  ['snout',  0.00,  0.63,  0.21,   0.150,   0.30],
+  ['earL',  -0.19,  0.90, -0.03,   0.120,   0.18],
+  ['earR',   0.19,  0.90, -0.03,   0.120,   0.18],
+  ['handL', -0.30,  0.26,  0.07,   0.140,   0.25],
+  ['handR',  0.30,  0.26,  0.07,   0.140,   0.25],
+  ['footL', -0.20, -0.36,  0.023,  0.175,   0.40],
+  ['footR',  0.20, -0.36,  0.023,  0.175,   0.40],
+];
+const N_NODE = NODE_DEF.length;
+const IX = {}; NODE_DEF.forEach((d,i)=>IX[d[0]] = i);
+
+const LINK_DEF = [
+  // a,       b,       strand radius (visual),  max stretch,  rendered
+  ['head',  'body',   0.125, 3.0, true ],
+  ['head',  'earL',   0.085, 2.6, true ],
+  ['head',  'earR',   0.085, 2.6, true ],
+  ['head',  'snout',  0.130, 2.2, true ],
+  ['body',  'belly',  0.205, 2.2, true ],
+  ['body',  'handL',  0.100, 2.6, true ],
+  ['body',  'handR',  0.100, 2.6, true ],
+  ['belly', 'footL',  0.118, 2.6, true ],
+  ['belly', 'footR',  0.118, 2.6, true ],
+  ['head',  'belly',  0.0,   1.65,false],
+  ['earL',  'earR',   0.0,   1.6, false],
+  ['handL', 'handR',  0.0,   1.8, false],
+  ['footL', 'footR',  0.0,   1.7, false],
+  ['handL', 'belly',  0.0,   1.6, false],
+  ['handR', 'belly',  0.0,   1.6, false],
+];
+
+const FLAVORS = [
+  { name:'Cherry',     base:0xe01b24, atten:0x6d0910, shadow:0xc2505a },
+  { name:'Orange',     base:0xff7d1a, atten:0xa53f00, shadow:0xd28b57 },
+  { name:'Lemon',      base:0xffd60a, atten:0xbf9300, shadow:0xd6c674 },
+  { name:'Apple',      base:0x8ed12c, atten:0x2b6a10, shadow:0x93b964 },
+  { name:'Pineapple',  base:0xfff2c8, atten:0xd9c07a, shadow:0xdfdac6 },
+];
+
+/* =====================================================================================
+   1. Static template data (shared by every bear)
+   ===================================================================================== */
+const REST  = new Float64Array(N_NODE*3);   // centered rest offsets  q_i
+const RADV  = new Float64Array(N_NODE);     // visible rest radii
+const MASS  = new Float64Array(N_NODE);
+const RADCOL= new Float64Array(N_NODE);     // collision radius
+{
+  let mx=0,my=0,mz=0,M=0;
+  for (let i=0;i<N_NODE;i++){
+    const d = NODE_DEF[i]; mx += d[1]*d[5]; my += d[2]*d[5]; mz += d[3]*d[5]; M += d[5];
+  }
+  mx/=M; my/=M; mz/=M;
+  for (let i=0;i<N_NODE;i++){
+    const d = NODE_DEF[i];
+    REST[i*3]   = d[1]-mx; REST[i*3+1] = d[2]-my; REST[i*3+2] = d[3]-mz;
+    RADV[i] = d[4]; MASS[i] = d[5]; RADCOL[i] = d[4]*0.86;
+  }
+}
+const TOTM = MASS.reduce((a,b)=>a+b, 0);
+const REST_Y = REST[IX.footL*3+1];       // centroid height offset of the feet
+
+// mass-weighted covariance of rest pose, and its inverse (shape matching)
+const WINV = (() => {
+  const w = [0,0,0, 0,0,0, 0,0,0];
+  for (let i=0;i<N_NODE;i++){
+    const q0=REST[i*3], q1=REST[i*3+1], q2=REST[i*3+2], m=MASS[i];
+    w[0]+=m*q0*q0; w[1]+=m*q0*q1; w[2]+=m*q0*q2;
+    w[4]+=m*q1*q1; w[5]+=m*q1*q2; w[8]+=m*q2*q2;
+  }
+  w[3]=w[1]; w[6]=w[2]; w[7]=w[5];                       // symmetric mass covariance
+  const m00=w[0],m01=w[1],m02=w[2],m10=w[3],m11=w[4],m12=w[5],m20=w[6],m21=w[7],m22=w[8];
+  const c00= m11*m22-m12*m21, c01= m12*m20-m10*m22, c02= m10*m21-m11*m20;
+  const c10= m02*m21-m01*m22, c11= m00*m22-m02*m20, c12= m01*m20-m00*m21;
+  const c20= m01*m12-m02*m11, c21= m02*m10-m00*m12, c22= m00*m11-m01*m10;
+  const det = m00*c00 + m01*c01 + m02*c02;
+  return [ c00/det, c10/det, c20/det,
+           c01/det, c11/det, c21/det,
+           c02/det, c12/det, c22/det ];
+})();
+
+// links
+const LINKS = LINK_DEF.map(L => {
+  const a = IX[L[0]], b = IX[L[1]];
+  const dx = REST[b*3]-REST[a*3], dy = REST[b*3+1]-REST[a*3+1], dz = REST[b*3+2]-REST[a*3+2];
+  return { a, b, r:L[2], max:L[3]*Math.hypot(dx,dy,dz), L0:Math.hypot(dx,dy,dz), draw:L[4] };
+});
+const NODE_LINKS = [];  // incident links per node (for bulge)
+for (let i=0;i<N_NODE;i++) NODE_LINKS[i] = [];
+LINKS.forEach((L,i)=>{ if (L.draw){ NODE_LINKS[L.a].push(i); NODE_LINKS[L.b].push(i); } });
+
+const N_STRAND = 3;                    // strand balls per rendered link
+const N_BALLS  = N_NODE + LINKS.filter(L=>L.draw).length * N_STRAND;
+const BALL_BUF = new Float32Array(N_BALLS*4);   // x,y,z,r  (grid units)
+
+/* =====================================================================================
+   2. Renderer / scene / lights / studio environment
+   ===================================================================================== */
+const QS = new URLSearchParams(location.search);
+const DEBUG_PLAIN = QS.has('plain');
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0xffffff, 1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.06;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+// exact page-white backdrop (untouched by tone mapping) + white fog so the table dissolves into it
+scene.fog = new THREE.Fog(0xffffff, 12, 34);
+const backdrop = new THREE.Mesh(
+  new THREE.SphereGeometry(90, 24, 16),
+  new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.BackSide, toneMapped:false, fog:false })
+);
+scene.add(backdrop);
+
+const camera = new THREE.PerspectiveCamera(31, innerWidth/innerHeight, 0.1, 200);
+camera.position.set(0, 3.35, 8.7);
+camera.lookAt(0, 0.85, 0);
+
+// white table (not tone mapped so it lands exactly on the page white)
+const table = new THREE.Mesh(
+  new THREE.PlaneGeometry(120, 120),
+  new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.62, metalness:0.0, toneMapped:false })
+);
+table.rotation.x = -Math.PI/2;
+table.receiveShadow = true;
+scene.add(table);
+
+// studio environment for reflections / clearcoat highlights
+function buildEnvironment(){
+  const s = new THREE.Scene();
+  s.add(new THREE.Mesh(
+    new THREE.BoxGeometry(24,24,24),
+    new THREE.MeshBasicMaterial({ color:new THREE.Color(0.80,0.82,0.86), side:THREE.BackSide })
+  ));
+  const panel = (w,h,col,x,y,z,rx,ry) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({ color:col, side:THREE.DoubleSide }));
+    m.position.set(x,y,z); m.rotation.set(rx,ry,0); s.add(m);
+  };
+  panel(10,6, new THREE.Color(6.5,6.4,6.2),  0,  10.5,  1, Math.PI/2, 0);   // big top softbox
+  panel(6,10, new THREE.Color(2.6,2.7,3.0), -10, 3.5,  3, 0,  Math.PI/2, 0); // cool left key fill
+  panel(6,10, new THREE.Color(1.5,1.5,1.6), 10,  3.0, -2, 0, -Math.PI/2, 0); // right
+  panel(9,3,  new THREE.Color(3.4,3.4,3.6),  0,  4.0, -10.5, 0, 0, 0);      // back strip (rim highlight)
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const rt = pmrem.fromScene(s, 0.035, 0.1, 60);
+  pmrem.dispose();
+  return rt.texture;
+}
+scene.environment = buildEnvironment();
+
+const key = new THREE.DirectionalLight(0xfff4e8, 2.35);
+key.position.set(4.6, 8.2, 5.4);
+key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left = -9; key.shadow.camera.right = 9;
+key.shadow.camera.top = 9;   key.shadow.camera.bottom = -9;
+key.shadow.camera.near = 0.5; key.shadow.camera.far = 32;
+key.shadow.bias = -0.0006;
+key.shadow.normalBias = 0.035;
+scene.add(key);
+
+const back = new THREE.DirectionalLight(0xdfe8ff, 1.45);
+back.position.set(-4.5, 4.6, -7.5);
+scene.add(back);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xe4e7ee, 0.55));
+
+/* =====================================================================================
+   3. Surface nets — implicit surface extraction with analytic-gradient normals
+   ===================================================================================== */
+const CORN = new Int8Array([ 0,0,0,  1,0,0,  1,1,0,  0,1,0,  0,0,1,  1,0,1,  1,1,1,  0,1,1 ]);
+const EDG  = new Int8Array([ 0,1,  1,2,  2,3,  3,0,  4,5,  5,6,  6,7,  7,4,  0,4,  1,5,  2,6,  3,7 ]);
+
+class SurfaceNet {
+  constructor(res, maxV=14000, maxI=48000){
+    this.res = res;
+    const NP = res+1;
+    this.NP = NP;
+    this.field = new Float32Array(NP*NP*NP);
+    this.stamp = new Int32Array(res*res*res);   // 0 = untouched this epoch
+    this.fid   = 1;
+    this.verts = new Float32Array(maxV*3);
+    this.norms = new Float32Array(maxV*3);
+    this.index = new Uint32Array(maxI);
+    this.maxV = maxV; this.maxI = maxI;
+
+    const g = this.geometry = new THREE.BufferGeometry();
+    this.posAttr = new THREE.BufferAttribute(this.verts,3).setUsage(THREE.DynamicDrawUsage);
+    this.norAttr = new THREE.BufferAttribute(this.norms,3).setUsage(THREE.DynamicDrawUsage);
+    this.idxAttr = new THREE.BufferAttribute(this.index,1).setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('position', this.posAttr);
+    g.setAttribute('normal',   this.norAttr);
+    g.setIndex(this.idxAttr);
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 4.5);
+
+    this.cvals  = new Float32Array(NP);
+    this.blurTmp = new Float32Array(NP);
+    this.lastBox = new Int32Array(6);
+    this.box     = new Int32Array(6);
+    this.nVerts = 0; this.nIdx = 0;
+  }
+
+  // balls: flat [x,y,z,radius] in *grid point* units; n = count; G = half extent in local units
+  build(balls, n, G){
+    const res = this.res, NP = this.NP, field = this.field, stamp = this.stamp;
+    const fid = this.fid; this.fid += 1;
+    if (this.fid > 1e8){ this.fid = 1; this.stamp.fill(0); }
+
+    /* --- bounding boxes ------------------------------------------------------- */
+    let bx0=1e9,by0=1e9,bz0=1e9, bx1=-1e9,by1=-1e9,bz1=-1e9;
+    for (let i=0;i<n;i++){
+      const x=balls[i*4], y=balls[i*4+1], z=balls[i*4+2], r=balls[i*4+3];
+      if (x-r<bx0) bx0=x-r;  if (x+r>bx1) bx1=x+r;
+      if (y-r<by0) by0=y-r;  if (y+r>by1) by1=y+r;
+      if (z-r<bz0) bz0=z-r;  if (z+r>bz1) bz1=z+r;
+    }
+    const box = this.box;
+    box[0]=Math.max(0,Math.floor(bx0)-1); box[1]=Math.min(res,Math.ceil(bx1)+1);
+    box[2]=Math.max(0,Math.floor(by0)-1); box[3]=Math.min(res,Math.ceil(by1)+1);
+    box[4]=Math.max(0,Math.floor(bz0)-1); box[5]=Math.min(res,Math.ceil(bz1)+1);
+
+    /* --- clear field over old ∪ new box (row fills) --------------------------- */
+    const clearBox = (b, from) => {
+      if (b[1] < b[0] || b[3] < b[2] || b[5] < b[4]) return;
+      for (let z=b[4]; z<=b[5]; z++){
+        const zo = z*NP*NP;
+        for (let y=b[2]; y<=b[3]; y++){
+          const s = zo + y*NP + b[0], e = zo + y*NP + b[1] + 1;
+          for (let i=s;i<e;i++) field[i] = 0;
+        }
+      }
+    };
+    clearBox(this.lastBox); clearBox(box);
+    this.lastBox.set(box);
+
+    /* --- splat balls ---------------------------------------------------------- */
+    const EPS = 1e-6;
+    for (let i=0;i<n;i++){
+      const bx=balls[i*4], by=balls[i*4+1], bz=balls[i*4+2], R=balls[i*4+3];
+      if (R <= 1e-4) continue;
+      const R2 = R*R, inv = 1/R2;
+      let x0 = Math.floor(bx-R); if (x0<1) x0=1; let x1 = Math.ceil(bx+R); if (x1>res-1) x1=res-1;
+      let y0 = Math.floor(by-R); if (y0<1) y0=1; let y1 = Math.ceil(by+R); if (y1>res-1) y1=res-1;
+      let z0 = Math.floor(bz-R); if (z0<1) z0=1; let z1 = Math.ceil(bz+R); if (z1>res-1) z1=res-1;
+      for (let z=z0; z<=z1; z++){
+        const dz = z-bz, dz2 = dz*dz, zo = z*NP*NP;
+        for (let y=y0; y<=y1; y++){
+          const dy = y-by, dy2 = dy*dy, yo = zo + y*NP;
+          for (let x=x0; x<=x1; x++){
+            const dx = x-bx;
+            const d2 = dx*dx + dy2 + dz2;
+            if (d2 < R2){
+              const f = 1 - d2*inv;
+              field[yo + x] += f*f*f;
+            }
+          }
+        }
+      }
+    }
+
+    /* --- smooth: tiny balls alias badly against the grid ---------------------- */
+    {
+      const tmp = this.blurTmp;
+      const blurLine = (start, end, stride) => {
+        const len = end-start;
+        if (len < 3) return;
+        for (let i=0;i<len;i++) tmp[i] = field[start + i*stride];
+        for (let i=1;i<len-1;i++){
+          field[start + i*stride] = (tmp[i-1] + 2*tmp[i] + tmp[i+1]) * 0.25;
+        }
+      };
+      for (let z=box[4]; z<=box[5]; z++)
+        for (let y=box[2]; y<=box[3]; y++)
+          blurLine(box[0] + (y*NP + z*NP*NP), box[1]+1, 1);
+      for (let z=box[4]; z<=box[5]; z++)
+        for (let x=box[0]; x<=box[1]; x++)
+          blurLine(box[2]*NP + x + z*NP*NP, box[3]+1, NP);
+      for (let y=box[2]; y<=box[3]; y++)
+        for (let x=box[0]; x<=box[1]; x++)
+          blurLine(box[4]*NP*NP + y*NP + x, box[5]+1, NP*NP);
+    }
+
+    /* --- cells -> vertices ---------------------------------------------------- */
+    const cx0 = Math.max(1, box[0]), cx1 = Math.min(res-2, box[1]);
+    const cy0 = Math.max(1, box[2]), cy1 = Math.min(res-2, box[3]);
+    const cz0 = Math.max(1, box[4]), cz1 = Math.min(res-2, box[5]);
+    const vals = this.cvals;
+    const verts = this.verts;
+    let vc = 0;
+
+    for (let z=cz0; z<=cz1; z++){
+      const zo = z*NP*NP;
+      for (let y=cy0; y<=cy1; y++){
+        const yo = zo + y*NP;
+        for (let x=cx0; x<=cx1; x++){
+          const p = yo + x, p2 = p + NP*NP;
+          const v0 = field[p];
+          const v1 = field[p+1];
+          const v2 = field[p+NP+1];          // corner (1,1,0)
+          const v3 = field[p+NP];
+          const v4 = field[p2];
+          const v5 = field[p2+1];
+          const v6 = field[p2+NP+1];
+          const v7 = field[p2+NP];
+          vals[0]=v0; vals[1]=v1; vals[2]=v2; vals[3]=v3;
+          vals[4]=v4; vals[5]=v5; vals[6]=v6; vals[7]=v7;
+          // quick sign test
+          let mn=v0, mx=v0;
+          if (v1<mn) mn=v1; else if (v1>mx) mx=v1;
+          if (v2<mn) mn=v2; else if (v2>mx) mx=v2;
+          if (v3<mn) mn=v3; else if (v3>mx) mx=v3;
+          if (v4<mn) mn=v4; else if (v4>mx) mx=v4;
+          if (v5<mn) mn=v5; else if (v5>mx) mx=v5;
+          if (v6<mn) mn=v6; else if (v6>mx) mx=v6;
+          if (v7<mn) mn=v7; else if (v7>mx) mx=v7;
+          if (mn >= ISO || mx < ISO){ stamp[z*res*res + y*res + x] = fid; continue; }
+
+          // naive surface nets vertex: mean of edge crossings
+          let px=0, py=0, pz=0, cnt=0;
+          for (let e=0; e<12; e++){
+            const a = EDG[e*2], b = EDG[e*2+1];
+            const va = vals[a], vb = vals[b];
+            if ((va >= ISO) === (vb >= ISO)) continue;
+            const t = (ISO - va) / (vb - va);
+            const ca = a*3, cb = b*3;
+            px += x + CORN[ca]   + t*(CORN[cb]   - CORN[ca]);
+            py += y + CORN[ca+1] + t*(CORN[cb+1] - CORN[ca+1]);
+            pz += z + CORN[ca+2] + t*(CORN[cb+2] - CORN[ca+2]);
+            cnt++;
+          }
+          if (cnt === 0){ stamp[z*res*res + y*res + x] = fid; continue; }
+          const invc = 1/cnt;
+          const ci = z*res*res + y*res + x;
+          if (vc + 1 > this.maxV){ stamp[ci] = fid; continue; }
+          stamp[ci] = fid + vc + 1;
+          verts[vc*3]   = px*invc;
+          verts[vc*3+1] = py*invc;
+          verts[vc*3+2] = pz*invc;
+          vc++;
+        }
+      }
+    }
+
+    /* --- normals first: quad winding is verified against them ------------------ */
+    this.buildNormals(balls, n, G, vc, verts);
+    const norms = this.norms;
+
+    /* --- edges -> quads ------------------------------------------------------- */
+    const index = this.index;
+    let ic = 0;
+    let dropQ = 0;
+    const cellVert = (x,y,z) => {
+      const st = stamp[z*res*res + y*res + x];
+      const v = (st === fid) ? -2 : (st === 0 ? -1 : st - fid - 1);   // -1 untouched, -2 empty
+      if (v < 0) dropQ++;
+      return v;
+    };
+    const push = (a,b,c,d) => {
+      if (ic + 6 > this.maxI) return;
+      const ax=verts[a*3], ay=verts[a*3+1], az=verts[a*3+2];
+      const e1x=verts[b*3]-ax, e1y=verts[b*3+1]-ay, e1z=verts[b*3+2]-az;
+      const e2x=verts[c*3]-ax, e2y=verts[c*3+1]-ay, e2z=verts[c*3+2]-az;
+      const gx=e1y*e2z-e1z*e2y, gy=e1z*e2x-e1x*e2z, gz=e1x*e2y-e1y*e2x;
+      const dot = gx*norms[a*3] + gy*norms[a*3+1] + gz*norms[a*3+2];
+      if (dot >= 0){ index[ic++]=a; index[ic++]=b; index[ic++]=c; index[ic++]=a; index[ic++]=c; index[ic++]=d; }
+      else         { index[ic++]=a; index[ic++]=c; index[ic++]=b; index[ic++]=a; index[ic++]=d; index[ic++]=c; }
+    };
+
+    // x edges
+    for (let z=cz0+1; z<=cz1; z++){
+      const zo = z*NP*NP;
+      for (let y=cy0+1; y<=cy1; y++){
+        const yo = zo + y*NP;
+        for (let x=cx0; x<=cx1; x++){
+          const fa = field[yo+x], fb = field[yo+x+1];
+          const ina = fa >= ISO;
+          if (ina === (fb >= ISO)) continue;
+          const a = cellVert(x, y-1, z-1), b = cellVert(x, y, z-1);
+          const c = cellVert(x, y, z),     d = cellVert(x, y-1, z);
+          if (a<0||b<0||c<0||d<0) continue;
+          push(a,b,c,d);
+        }
+      }
+    }
+    // y edges
+    for (let z=cz0+1; z<=cz1; z++){
+      const zo = z*NP*NP;
+      for (let y=cy0; y<=cy1; y++){
+        const yo = zo + y*NP;
+        for (let x=cx0+1; x<=cx1; x++){
+          const fa = field[yo+x], fb = field[yo+x+NP];
+          const ina = fa >= ISO;
+          if (ina === (fb >= ISO)) continue;
+          const a = cellVert(x-1, y, z-1), b = cellVert(x-1, y, z);
+          const c = cellVert(x,   y, z),   d = cellVert(x,   y, z-1);
+          if (a<0||b<0||c<0||d<0) continue;
+          push(a,b,c,d);
+        }
+      }
+    }
+    // z edges
+    for (let z=cz0; z<=cz1; z++){
+      const zo = z*NP*NP;
+      for (let y=cy0+1; y<=cy1; y++){
+        const yo = zo + y*NP;
+        for (let x=cx0+1; x<=cx1; x++){
+          const fa = field[yo+x], fb = field[yo+x+NP*NP];
+          const ina = fa >= ISO;
+          if (ina === (fb >= ISO)) continue;
+          const a = cellVert(x-1, y-1, z), b = cellVert(x, y-1, z);
+          const c = cellVert(x,   y,   z), d = cellVert(x-1, y, z);
+          if (a<0||b<0||c<0||d<0) continue;
+          push(a,b,c,d);
+        }
+      }
+    }
+
+    this.nVerts = vc; this.nIdx = ic; this.dropQ = dropQ/4;
+    if (vc === 0 || ic === 0){
+      this.geometry.setDrawRange(0, 0);
+      return false;
+    }
+
+    this.geometry.boundingSphere.radius = G*1.8;
+    this.geometry.setDrawRange(0, ic);
+    this.markDirty();
+    return true;
+  }
+
+  // analytic gradient of the implicit field at every vertex (smooth, glossy-safe)
+  buildNormals(balls, n, G, vc, verts){
+    const norms = this.norms;
+    const toLocal = (2*G)/this.res;   // grid unit -> bear-local unit
+    const origin = -G;
+    for (let vi=0; vi<vc; vi++){
+      const gx = verts[vi*3], gy = verts[vi*3+1], gz = verts[vi*3+2];
+      let nx=0, ny=0, nz=0;
+      for (let i=0;i<n;i++){
+        const bx=balls[i*4], by=balls[i*4+1], bz=balls[i*4+2], R=balls[i*4+3];
+        if (R <= 1e-4) continue;
+        const dx = gx-bx, dy = gy-by, dz = gz-bz;
+        const d2 = dx*dx+dy*dy+dz*dz;
+        if (d2 >= R2_(R)) continue;
+        const t2 = d2/(R*R), f = 1-t2;
+        const k = -6*f*f/(R*R);
+        nx += k*dx; ny += k*dy; nz += k*dz;
+      }
+      const len = Math.sqrt(nx*nx+ny*ny+nz*nz) || 1;
+      norms[vi*3]   = -nx/len;
+      norms[vi*3+1] = -ny/len;
+      norms[vi*3+2] = -nz/len;
+      // grid coords -> bear-local coords
+      verts[vi*3]   = origin + gx*toLocal;
+      verts[vi*3+1] = origin + gy*toLocal;
+      verts[vi*3+2] = origin + gz*toLocal;
+    }
+  }
+
+  markDirty(){
+    const up = (attr, count) => {
+      if (attr.clearUpdateRanges) attr.clearUpdateRanges();
+      if (attr.addUpdateRange) attr.addUpdateRange(0, count);
+      attr.needsUpdate = true;
+    };
+    up(this.posAttr, this.nVerts*3);
+    up(this.norAttr, this.nVerts*3);
+    up(this.idxAttr, this.nIdx);
+  }
+}
+function R2_(R){ return R*R; }
+
+// Higham polar decomposition: rotation part of a 3x3 matrix (row-major, in place)
+const POLAR_TMP = new Float64Array(9);
+function polarRot(m, out){
+  out[0]=m[0]+0.03; out[1]=m[1];           out[2]=m[2];
+  out[3]=m[3];       out[4]=m[4]+0.03;     out[5]=m[5];
+  out[6]=m[6];       out[7]=m[7];          out[8]=m[8]+0.03;
+  for (let it=0; it<5; it++){
+    const a=out[0],b=out[1],c=out[2],d=out[3],e=out[4],f=out[5],g=out[6],h=out[7],i=out[8];
+    const C00=e*i-f*h, C01=f*g-d*i, C02=d*h-e*g;
+    const C10=c*h-b*i, C11=a*i-c*g, C12=b*g-a*h;
+    const C20=b*f-c*e, C21=c*d-a*f, C22=a*e-b*d;
+    const det=a*C00+b*C01+c*C02;
+    if (Math.abs(det) < 1e-9) return false;
+    const id=1/det;
+    out[0]=0.5*(a + C00*id); out[1]=0.5*(b + C01*id); out[2]=0.5*(c + C02*id);
+    out[3]=0.5*(d + C10*id); out[4]=0.5*(e + C11*id); out[5]=0.5*(f + C12*id);
+    out[6]=0.5*(g + C20*id); out[7]=0.5*(h + C21*id); out[8]=0.5*(i + C22*id);
+  }
+  return true;
+}
+
+/* =====================================================================================
+   4. Shared materials & small assets
+   ===================================================================================== */
+function gummyMaterial(f){
+  if (QS.has('mat')){ return new THREE.MeshNormalMaterial({ side: THREE[QS.get('mat').toUpperCase()] || THREE.FRONT_SIDE }); }
+  if (DEBUG_PLAIN){
+    return new THREE.MeshPhysicalMaterial({
+      color:new THREE.Color(f.base).multiplyScalar(0.9), roughness:0.16, metalness:0,
+      transparent:true, opacity:0.92, clearcoat:1, clearcoatRoughness:0.05, envMapIntensity:1.1
+    });
+  }
+  return new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(f.base),
+    roughness: 0.075, metalness: 0.0,
+    transmission: 1.0, thickness: 0.42, ior: 1.44,
+    attenuationColor: new THREE.Color(f.atten), attenuationDistance: 0.26,
+    clearcoat: 1.0, clearcoatRoughness: 0.045,
+    specularIntensity: 1.0, envMapIntensity: 1.15,
+  });
+}
+const EYE_MAT = new THREE.MeshPhysicalMaterial({
+  color:0x2a1410, roughness:0.22, clearcoat:0.9, clearcoatRoughness:0.16, envMapIntensity:0.8
+});
+const EYE_GEO = new THREE.SphereGeometry(1, 14, 10);
+
+const SHADOW_TEX = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(64,64,0, 64,64,64);
+  grd.addColorStop(0.00,'rgba(255,255,255,1)');
+  grd.addColorStop(0.42,'rgba(255,255,255,0.78)');
+  grd.addColorStop(0.72,'rgba(255,255,255,0.28)');
+  grd.addColorStop(1.00,'rgba(255,255,255,0)');
+  g.fillStyle = grd; g.fillRect(0,0,128,128);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+})();
+
+/* =====================================================================================
+   5. Bear — soft body + implicit surface
+   ===================================================================================== */
+let BEAR_ID = 0;
+
+class Bear {
+  constructor(flavorIndex, res){
+    this.id = ++BEAR_ID;
+    this.fi = flavorIndex % FLAVORS.length;
+    this.res = res;
+
+    this.pos  = new Float64Array(N_NODE*3);
+    this.vel  = new Float64Array(N_NODE*3);
+    this.pprev = new Float64Array(N_NODE*3);
+    this.acc  = new Float64Array(N_NODE*3);
+    this.loc  = new Float64Array(N_NODE*3);
+    this.locPrev = new Float64Array(N_NODE*3);
+    this.bulge = new Float64Array(N_NODE);
+    this.bulgePrev = new Float64Array(N_NODE);
+    this.Rm   = new Float64Array([1,0,0, 0,1,0, 0,0,1]);
+    this.pol  = new Float64Array(9);
+    this.quat = new THREE.Quaternion();
+    this.c    = new Float64Array(3);
+    this.detF = 1;
+    this.G    = 1.2;
+    this.Gprev= 1.2;
+    this.grabNode = -1;
+    this.bounceCd = 0;
+    this.bounceEvents = 0;
+    this.age = 0;
+    this.idle = 2 + Math.random()*5;
+    this.net = new SurfaceNet(res);
+    this.netBuilt = false;
+
+    const f = FLAVORS[this.fi];
+    this.material = gummyMaterial(f);
+    this.mesh = new THREE.Mesh(this.net.geometry, this.material);
+    this.mesh.castShadow = true;
+    this.mesh.frustumCulled = true;
+
+    this.group = new THREE.Group();
+    this.group.add(this.mesh);
+
+    const eyeOff = 0.118, eyeUp = 0.088, eyeFw = 0.196;
+    this.eyeL = new THREE.Mesh(EYE_GEO, EYE_MAT);
+    this.eyeR = new THREE.Mesh(EYE_GEO, EYE_MAT);
+    this.nose = new THREE.Mesh(EYE_GEO, EYE_MAT);
+    this.eyeL.scale.setScalar(0.036); this.eyeR.scale.setScalar(0.036); this.nose.scale.set(0.052,0.044,0.052);
+    this.eyeOffset = [ -eyeOff, eyeUp, eyeFw,  eyeOff, eyeUp, eyeFw ];
+    [this.eyeL,this.eyeR,this.nose].forEach(m=>{ m.castShadow=false; this.group.add(m); });
+
+    // coloured contact shadow
+    const sc = new THREE.Color(f.shadow).lerp(new THREE.Color(0x555560), 0.35);
+    this.shadowMat = new THREE.MeshBasicMaterial({
+      map:SHADOW_TEX, color:sc, transparent:true, opacity:0.5, depthWrite:false
+    });
+    this.shadow = new THREE.Mesh(new THREE.PlaneGeometry(2,2), this.shadowMat);
+    this.shadow.rotation.x = -Math.PI/2;
+    this.shadow.position.y = 0.004;
+    this.shadow.renderOrder = 1;
+
+    scene.add(this.group);
+    scene.add(this.shadow);
+  }
+
+  dispose(){
+    scene.remove(this.group); scene.remove(this.shadow);
+    this.net.geometry.dispose(); this.material.dispose(); this.shadowMat.dispose();
+  }
+
+  spawn(cx, cy, cz, yaw){
+    const s = Math.sin(yaw), c = Math.cos(yaw);
+    for (let i=0;i<N_NODE;i++){
+      const qx=REST[i*3], qy=REST[i*3+1], qz=REST[i*3+2];
+      this.pos[i*3]   = cx + qx*c + qz*s;
+      this.pos[i*3+1] = cy + qy;
+      this.pos[i*3+2] = cz - qx*s + qz*c;
+      this.vel[i*3]=0; this.vel[i*3+1]=0; this.vel[i*3+2]=0;
+      this.bulge[i]=1; this.bulgePrev[i]=1;
+    }
+    this.Rm.set([c,-s,0, s,c,0, 0,0,1]);
+    this.c[0]=cx; this.c[1]=cy; this.c[2]=cz;
+    this.firstFrame = true;
+  }
+
+  /* ---------- physics ---------- */
+  step(h, wob){
+    const pos=this.pos, vel=this.vel, p0=this.pprev, acc=this.acc;
+    const n3 = N_NODE*3;
+    for (let i=0;i<n3;i++) p0[i]=pos[i];
+
+    const aS = wob.aS;          // shape-matching stiffness (per substep)
+    const aL = wob.aL;          // link (limb/neck) stiffness
+    const damp = 1 - 0.55*h;
+
+    /* --- 1. predict: gravity + grab, integrate ------------------------------- */
+    const gi = this.grabNode, gg = this.grab;
+    for (let i=0;i<N_NODE;i++){
+      const j=i*3;
+      vel[j+1] += GRAV*h;
+      if (i === gi && gg){
+        vel[j]   += (gg.tx-pos[j])*140*h;
+        vel[j+1] += (gg.ty-pos[j+1])*140*h;
+        vel[j+2] += (gg.tz-pos[j+2])*140*h;
+        vel[j]   -= (vel[j]-gg.vx)*0.22;
+        vel[j+1] -= (vel[j+1]-gg.vy)*0.22;
+        vel[j+2] -= (vel[j+2]-gg.vz)*0.22;
+      }
+      vel[j]*=damp; vel[j+1]*=damp; vel[j+2]*=damp;
+      const sp2 = vel[j]*vel[j]+vel[j+1]*vel[j+1]+vel[j+2]*vel[j+2];
+      if (sp2 > 676){ const k = 26/Math.sqrt(sp2); vel[j]*=k; vel[j+1]*=k; vel[j+2]*=k; }
+      pos[j]+=vel[j]*h; pos[j+1]+=vel[j+1]*h; pos[j+2]+=vel[j+2]*h;
+    }
+
+    /* --- 2. volume-preserving shape matching (position based) ---------------- */
+    let cx=0,cy=0,cz=0;
+    for (let i=0;i<N_NODE;i++){ const j=i*3, m=MASS[i]; cx+=pos[j]*m; cy+=pos[j+1]*m; cz+=pos[j+2]*m; }
+    cx/=TOTM; cy/=TOTM; cz/=TOTM;
+    let a00=0,a01=0,a02=0,a10=0,a11=0,a12=0,a20=0,a21=0,a22=0;
+    for (let i=0;i<N_NODE;i++){
+      const j=i*3, m=MASS[i];
+      const px=pos[j]-cx, py=pos[j+1]-cy, pz=pos[j+2]-cz;
+      const qx=REST[j], qy=REST[j+1], qz=REST[j+2];
+      a00+=m*px*qx; a01+=m*px*qy; a02+=m*px*qz;
+      a10+=m*py*qx; a11+=m*py*qy; a12+=m*py*qz;
+      a20+=m*pz*qx; a21+=m*pz*qy; a22+=m*pz*qz;
+    }
+    const W = WINV;
+    const F00=a00*W[0]+a01*W[3]+a02*W[6], F01=a00*W[1]+a01*W[4]+a02*W[7], F02=a00*W[2]+a01*W[5]+a02*W[8];
+    const F10=a10*W[0]+a11*W[3]+a12*W[6], F11=a10*W[1]+a11*W[4]+a12*W[7], F12=a10*W[2]+a11*W[5]+a12*W[8];
+    const F20=a20*W[0]+a21*W[3]+a22*W[6], F21=a20*W[1]+a21*W[4]+a22*W[7], F22=a20*W[2]+a21*W[5]+a22*W[8];
+    POLAR_TMP[0]=F00; POLAR_TMP[1]=F01; POLAR_TMP[2]=F02;
+    POLAR_TMP[3]=F10; POLAR_TMP[4]=F11; POLAR_TMP[5]=F12;
+    POLAR_TMP[6]=F20; POLAR_TMP[7]=F21; POLAR_TMP[8]=F22;
+    const det = F00*(F11*F22-F12*F21) - F01*(F10*F22-F12*F20) + F02*(F10*F21-F11*F20);
+    this.detF = det;
+    const s = Math.pow(Math.min(4.0, Math.max(0.18, det)), -1/3);   // volume preserving
+
+    const Rm = this.Rm;
+    if (polarRot(POLAR_TMP, this.pol)){
+      Rm[0]=this.pol[0]; Rm[1]=this.pol[3]; Rm[2]=this.pol[6];
+      Rm[3]=this.pol[1]; Rm[4]=this.pol[4]; Rm[5]=this.pol[7];
+      Rm[6]=this.pol[2]; Rm[7]=this.pol[5]; Rm[8]=this.pol[8];
+    }
+    const r00=Rm[0], r01=Rm[3], r02=Rm[6];
+    const r10=Rm[1], r11=Rm[4], r12=Rm[7];
+    const r20=Rm[2], r21=Rm[5], r22=Rm[8];
+
+    for (let i=0;i<N_NODE;i++){
+      const j=i*3;
+      const qx=REST[j], qy=REST[j+1], qz=REST[j+2];
+      pos[j]   += aS*(cx + s*(r00*qx+r01*qy+r02*qz) - pos[j]);
+      pos[j+1] += aS*(cy + s*(r10*qx+r11*qy+r12*qz) - pos[j+1]);
+      pos[j+2] += aS*(cz + s*(r20*qx+r21*qy+r22*qz) - pos[j+2]);
+    }
+
+    /* --- 3. links: rubber bands between the mass points --------------------- */
+    for (let it=0; it<2; it++){
+      for (let li=0; li<LINKS.length; li++){
+        const L=LINKS[li], ia=L.a*3, ib=L.b*3;
+        const dx=pos[ib]-pos[ia], dy=pos[ib+1]-pos[ia+1], dz=pos[ib+2]-pos[ia+2];
+        const d = Math.sqrt(dx*dx+dy*dy+dz*dz);
+        if (d < 1e-6) continue;
+        const delta = d - L.L0;
+        const wa = (gi===L.a) ? 0 : 1/MASS[L.a];
+        const wb = (gi===L.b) ? 0 : 1/MASS[L.b];
+        const ws = wa+wb; if (ws===0) continue;
+        if (delta > 0){
+          // soft rubber band, stiffening as it stretches
+          const k = aL*(0.40*delta + 0.60*delta*delta/d)/d;
+          const ca = k*wa/ws, cb = k*wb/ws;
+          pos[ia]  += dx*ca; pos[ia+1] += dy*ca; pos[ia+2] += dz*ca;
+          pos[ib]  -= dx*cb; pos[ib+1] -= dy*cb; pos[ib+2] -= dz*cb;
+        }
+        // hard rubber limit
+        const d2 = Math.hypot(pos[ib]-pos[ia], pos[ib+1]-pos[ia+1], pos[ib+2]-pos[ia+2]);
+        if (d2 > L.max && d2 > 1e-6){
+          const o = ((d2-L.max)/d2)/ws;
+          const xa=(pos[ib]-pos[ia]), xb=(pos[ib+1]-pos[ia+1]), xc=(pos[ib+2]-pos[ia+2]);
+          pos[ia]  += xa*o*wa; pos[ia+1] += xb*o*wa; pos[ia+2] += xc*o*wa;
+          pos[ib]  -= xa*o*wb; pos[ib+1] -= xb*o*wb; pos[ib+2] -= xc*o*wb;
+        }
+      }
+      // floor (position level, unsquishable) + wide-sole balance
+      for (let i=0;i<N_NODE;i++){
+        const j=i*3;
+        if (pos[j+1] < RADCOL[i]) pos[j+1] = RADCOL[i];
+      }
+    }
+
+    /* --- 4. velocity update from the final positions ------------------------ */
+    const invh = 1/h;
+    let cx2=0, cy2=0, cz2=0, contacts=0;
+    for (let i=0;i<N_NODE;i++){
+      const j=i*3;
+      vel[j]   = (pos[j]-p0[j])*invh;
+      vel[j+1] = (pos[j+1]-p0[j+1])*invh;
+      vel[j+2] = (pos[j+2]-p0[j+2])*invh;
+      cx2+=pos[j]; cy2+=pos[j+1]; cz2+=pos[j+2];
+      const r = RADCOL[i];
+      if (pos[j+1] <= r + 1e-4){
+        contacts++;
+        if (vel[j+1] < 0){
+          const impact = -vel[j+1];
+          if (impact > 2.6 && this.bounceCd <= 0){ this.bounceEvents++; this.bounceCd = 0.30; }
+          vel[j+1] = impact > 1.4 ? impact*0.42 : 0;
+          vel[j]   *= 0.86;
+          vel[j+2] *= 0.86;
+        }
+      }
+    }
+    if (this.bounceCd > 0) this.bounceCd -= h;
+    const ccx=cx2/N_NODE, ccy=cy2/N_NODE, ccz=cz2/N_NODE;
+    this.c[0]=ccx; this.c[1]=ccy; this.c[2]=ccz;
+
+    // wide sole: point feet are tippy, so a standing bear keeps re-levelling (torque only, no drift)
+    if (contacts > 0 && gi < 0){
+      const ux=Rm[3], uy=Rm[4], uz=Rm[5];          // bear's up axis, world space
+      const ax0=-uz, az0=ux;                        // u x up
+      const sinT = Math.sqrt(ax0*ax0+az0*az0);
+      if (sinT > 1e-3 && uy > 0.30){
+        const th = Math.atan2(sinT, uy);
+        const w  = th*10;
+        const wx = ax0/sinT*w, wz = az0/sinT*w;
+        for (let i=0;i<N_NODE;i++){
+          const j=i*3;
+          const rx=pos[j]-ccx, ry=pos[j+1]-ccy, rz=pos[j+2]-ccz;
+          vel[j]   += -wz*ry;
+          vel[j+1] +=  wz*rx - wx*rz;
+          vel[j+2] +=  wx*ry;
+        }
+      }
+    }
+
+    /* --- 5. table boundary + idle hops -------------------------------------- */
+    const rx = pos[IX.body*3], rz = pos[IX.body*3+2];
+    const rr = Math.hypot(rx, rz);
+    if (rr > 11){
+      const k = (rr-11)/rr*0.4;
+      for (let i=0;i<N_NODE;i++){ vel[i*3] -= rx*k; vel[i*3+2] -= rz*k; }
+    }
+
+    this.idle -= h;
+    if (this.idle <= 0){
+      this.idle = 4 + Math.random()*8;
+      let speed = 0, footY = 1e9;
+      for (let i=0;i<N_NODE;i++){
+        speed += Math.abs(vel[i*3])+Math.abs(vel[i*3+1])+Math.abs(vel[i*3+2]);
+        if (pos[i*3+1]<footY) footY=pos[i*3+1];
+      }
+      if (speed < 2.6 && footY < 0.4 && this.grabNode < 0){
+        const J = 2.7 + Math.random()*1.3;
+        const ax = (Math.random()-0.5)*0.22, az = (Math.random()-0.5)*0.22;
+        for (let i=0;i<N_NODE;i++){
+          const j=i*3;
+          vel[j]   += ax;
+          vel[j+2] += az;
+          vel[j+1] += J*(1 + 0.6*REST[j+1]);   // stretch on take-off, squash on landing
+        }
+      }
+    }
+  }
+
+  /* ---------- rendering ---------- */
+  updateMesh(force){
+    const pos=this.pos, R=this.Rm, c=this.c, loc=this.loc;
+
+    // bear frame -> quaternion
+    const qm = this.qmat || (this.qmat = new THREE.Matrix4());
+    qm.set(R[0],R[3],R[6],0,  R[1],R[4],R[7],0,  R[2],R[5],R[8],0,  0,0,0,1);
+    this.quat.setFromRotationMatrix(qm);
+
+    // rotate into the bear frame
+    let maxAbs = 0;
+    for (let i=0;i<N_NODE;i++){
+      const j=i*3;
+      const dx=pos[j]-c[0], dy=pos[j+1]-c[1], dz=pos[j+2]-c[2];
+      const lx = R[0]*dx + R[1]*dy + R[2]*dz;      // R^T * d  (R stored column-major)
+      const ly = R[3]*dx + R[4]*dy + R[5]*dz;
+      const lz = R[6]*dx + R[7]*dy + R[8]*dz;
+      loc[j]=lx; loc[j+1]=ly; loc[j+2]=lz;
+      const a = Math.abs(lx); if (a>maxAbs) maxAbs=a;
+      const b = Math.abs(ly); if (b>maxAbs) maxAbs=b;
+      const d = Math.abs(lz); if (d>maxAbs) maxAbs=d;
+    }
+
+    // local bulge from link stretch (squash -> fatter, pull -> thinner)
+    for (let i=0;i<N_NODE;i++){
+      const links = NODE_LINKS[i];
+      let st=0;
+      for (let k=0;k<links.length;k++){
+        const L=LINKS[links[k]], o=(L.a===i?L.b:L.a)*3, p=i*3;
+        const dx=pos[o]-pos[p], dy=pos[o+1]-pos[p+1], dz=pos[o+2]-pos[p+2];
+        st += Math.sqrt(dx*dx+dy*dy+dz*dz)/L.L0;
+      }
+      const s = links.length ? st/links.length : 1;
+      let b = 1/Math.sqrt(Math.max(0.25, s));
+      if (b < 0.55) b = 0.55; else if (b > 1.7) b = 1.7;
+      this.bulge[i] = b;
+      const reach = Math.abs(loc[i*3]) + Math.abs(loc[i*3+1]) + Math.abs(loc[i*3+2]) + RADV[i]*b*VIS_FACTOR;
+      if (reach > maxAbs) maxAbs = reach;
+    }
+
+    // adaptive grid extent (smoothed)
+    const Gt = Math.min(3.2, Math.max(0.85, maxAbs*1.14));
+    if (this.firstFrame) this.G = Gt;
+    this.G += (Gt - this.G)*0.3;
+    const G = this.G;
+
+    // eyes / nose ride the local frame
+    const h = IX.head*3, sn = IX.snout*3;
+    this.eyeL.position.set(loc[h]+this.eyeOffset[0], loc[h+1]+this.eyeOffset[1], loc[h+2]+this.eyeOffset[2]);
+    this.eyeR.position.set(loc[h]+this.eyeOffset[3], loc[h+1]+this.eyeOffset[4], loc[h+2]+this.eyeOffset[5]);
+    this.nose.position.set(loc[sn], loc[sn+1]+0.012, loc[sn+2]+0.105);
+
+    // skip rebuild when nothing deformed (rigid motion is free)
+    if (!force && !this.firstFrame){
+      let d = Math.abs(G - this.Gprev);
+      for (let i=0;i<N_NODE;i++){
+        const j=i*3;
+        d += Math.abs(loc[j]-this.locPrev[j]) + Math.abs(loc[j+1]-this.locPrev[j+1]) + Math.abs(loc[j+2]-this.locPrev[j+2]);
+        d += Math.abs(this.bulge[i]-this.bulgePrev[i])*0.4;
+      }
+      if (d < 0.010) { this.group.position.set(c[0],c[1],c[2]); this.group.quaternion.copy(this.quat); return; }
+    }
+    this.firstFrame = false;
+
+    /* --- balls (grid units) --------------------------------------------------- */
+    const res = this.res, half = res/2, B = BALL_BUF;
+    const invG = half / G;
+    let n = 0;
+    for (let i=0;i<N_NODE;i++){
+      const j=i*3;
+      const rf = RADV[i]*this.bulge[i]*VIS_FACTOR*invG;
+      B[n*4]   = (loc[j]/G + 1)*half;
+      B[n*4+1] = (loc[j+1]/G + 1)*half;
+      B[n*4+2] = (loc[j+2]/G + 1)*half;
+      B[n*4+3] = rf;
+      n++;
+    }
+    for (let li=0; li<LINKS.length; li++){
+      const L = LINKS[li];
+      if (!L.draw) continue;
+      const ia=L.a*3, ib=L.b*3;
+      const dx=pos[ib]-pos[ia], dy=pos[ib+1]-pos[ia+1], dz=pos[ib+2]-pos[ia+2];
+      const d = Math.sqrt(dx*dx+dy*dy+dz*dz) || 1e-6;
+      let s = Math.sqrt(L.L0/d); if (s<0.30) s=0.30; else if (s>1.25) s=1.25;
+      const r = L.r*s*VIS_FACTOR*invG;
+      for (let k=0;k<N_STRAND;k++){
+        const t = (k+1)/(N_STRAND+1);
+        // strand ball in world -> bear frame
+        const wx = pos[ia]+dx*t, wy = pos[ia+1]+dy*t, wz = pos[ia+2]+dz*t;
+        const ex = wx-c[0], ey = wy-c[1], ez = wz-c[2];
+        B[n*4]   = ((R[0]*ex + R[1]*ey + R[2]*ez)/G + 1)*half;
+        B[n*4+1] = ((R[3]*ex + R[4]*ey + R[5]*ez)/G + 1)*half;
+        B[n*4+2] = ((R[6]*ex + R[7]*ey + R[8]*ez)/G + 1)*half;
+        B[n*4+3] = r;
+        n++;
+      }
+    }
+
+    this.net.build(B, n, G);
+
+    // local pose bookkeeping
+    this.locPrev.set(loc);
+    this.bulgePrev.set(this.bulge);
+    this.Gprev = G;
+
+    this.group.position.set(c[0],c[1],c[2]);
+    this.group.quaternion.copy(this.quat);
+  }
+}
+/* =====================================================================================
+   6. World
+   ===================================================================================== */
+const bears = [];
+let totalBounces = 0;
+
+function spawnBear(flavor, x, y, z, yaw){
+  const res = bears.length > 9 ? 34 : 42;
+  const b = new Bear(flavor, res);
+  b.spawn(x, y, z, yaw);
+  bears.push(b);
+  while (bears.length > MAX_BEARNS){ const old = bears.shift(); totalBounces += 0; old.dispose(); }
+  return b;
+}
+
+function pour(count){
+  const n = count || 4;
+  for (let i=0;i<n;i++){
+    const f = Math.random() < 0.35 ? selectedFlavor : Math.floor(Math.random()*FLAVORS.length);
+    const x = (Math.random()-0.5)*3.4;
+    const z = (Math.random()-0.5)*2.4;
+    const b = spawnBear(f, x, 3.4 + i*1.15 + Math.random()*0.4, z, Math.random()*Math.PI*2);
+    for (let k=0;k<N_NODE;k++){ b.vel[k*3+1] = -1.2; b.vel[k*3] += (Math.random()-0.5)*1.2; b.vel[k*3+2] += (Math.random()-0.5)*1.2; }
+    b.firstFrame = true;
+  }
+  document.getElementById('batch').textContent = String(++batchNo).padStart(3,'0');
+}
+let batchNo = 1;
+
+function stepWorld(h, wob){
+  for (let i=0;i<bears.length;i++){ bears[i].age += h; bears[i].step(h, wob); }
+
+  // bear <-> bear (node spheres, never tunnel)
+  for (let i=0;i<bears.length;i++){
+    const A = bears[i];
+    for (let j=i+1;j<bears.length;j++){
+      const B = bears[j];
+      if (A.age < 0.35 || B.age < 0.35) continue;   // freshly poured: no overlap blast
+      // cheap broadphase on centroids
+      const dx=A.c[0]-B.c[0], dy=A.c[1]-B.c[1], dz=A.c[2]-B.c[2];
+      if (dx*dx+dy*dy+dz*dz > 12.25) continue;
+      for (let a=0;a<N_NODE;a++){
+        const ja=a*3, ra=RADCOL[a]*0.92, ax=A.pos[ja], ay=A.pos[ja+1], az=A.pos[ja+2];
+        for (let b2=0;b2<N_NODE;b2++){
+          const jb=b2*3, rb=RADCOL[b2]*0.92;
+          const ex=ax-B.pos[jb], ey=ay-B.pos[jb+1], ez=az-B.pos[jb+2];
+          const rr = ra+rb;
+          const d2 = ex*ex+ey*ey+ez*ez;
+          if (d2 >= rr*rr || d2 < 1e-9) continue;
+          const d = Math.sqrt(d2);
+          const nx=ex/d, ny=ey/d, nz=ez/d;
+          const pen = Math.min(rr-d, rr*0.45);
+          const wa = 1/MASS[a], wb = 1/MASS[b2], ws = wa+wb;
+          const ca = pen*(wa/ws)*0.85, cb = pen*(wb/ws)*0.85;
+          A.pos[ja]  += nx*ca; A.pos[ja+1] += ny*ca; A.pos[ja+2] += nz*ca;
+          B.pos[jb]  -= nx*cb; B.pos[jb+1] -= ny*cb; B.pos[jb+2] -= nz*cb;
+          const rvx=B.vel[jb]-A.vel[ja], rvy=B.vel[jb+1]-A.vel[ja+1], rvz=B.vel[jb+2]-A.vel[ja+2];
+          const vn = rvx*nx+rvy*ny+rvz*nz;
+          if (vn < 0){
+            const jj = -(1+0.28)*vn/ws;
+            A.vel[ja]   -= nx*jj*wa; A.vel[ja+1] -= ny*jj*wa; A.vel[ja+2] -= nz*jj*wa;
+            B.vel[jb]   += nx*jj*wb; B.vel[jb+1] += ny*jj*wb; B.vel[jb+2] += nz*jj*wb;
+            // tangential friction
+            const tvx = rvx - vn*nx, tvy = rvy - vn*ny, tvz = rvz - vn*nz;
+            A.vel[ja]   += tvx*0.05*wa/ws; A.vel[ja+1] += tvy*0.05*wa/ws; A.vel[ja+2] += tvz*0.05*wa/ws;
+            B.vel[jb]   -= tvx*0.05*wb/ws; B.vel[jb+1] -= tvy*0.05*wb/ws; B.vel[jb+2] -= tvz*0.05*wb/ws;
+          }
+        }
+      }
+    }
+  }
+}
+
+function updateScene(){
+  for (const b of bears){
+    b.updateMesh(false);
+    // contact shadow
+    let minX=1e9,maxX=-1e9,minZ=1e9,maxZ=-1e9, minY=1e9, maxRad=0;
+    const c=b.c;
+    for (let i=0;i<N_NODE;i++){
+      const j=i*3, x=b.pos[j], y=b.pos[j+1], z=b.pos[j+2];
+      if (x<minX)minX=x; if (x>maxX)maxX=x; if (z<minZ)minZ=z; if (z>maxZ)maxZ=z;
+      if (y<minY)minY=y;
+      const r = Math.hypot(x-c[0], z-c[2]) + RADV[i]*1.1;
+      if (r>maxRad) maxRad = r;
+    }
+    const height = Math.max(0, minY - 0.12);
+    const grow = 1 + height*0.30;
+    b.shadow.position.x = c[0];
+    b.shadow.position.z = c[2];
+    b.shadow.scale.set(maxRad*1.65*grow, maxRad*1.65*grow, 1);
+    b.shadowMat.opacity = Math.max(0.10, 0.52 - height*0.14);
+  }
+}
+
+/* =====================================================================================
+   7. Interaction
+   ===================================================================================== */
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const dragPlane = new THREE.Plane();
+const tmpV = new THREE.Vector3();
+const hitV = new THREE.Vector3();
+let grab = null;
+let pointerVel = new THREE.Vector3();
+let hover = false;
+
+const cursorEl = document.getElementById('cursor');
+let curX = innerWidth/2, curY = innerHeight/2, curTX = curX, curTY = curY;
+
+function setRayFromEvent(e){
+  ndc.x = (e.clientX/innerWidth)*2 - 1;
+  ndc.y = -(e.clientY/innerHeight)*2 + 1;
+  ray.setFromCamera(ndc, camera);
+}
+
+function pickBear(){
+  const o = ray.ray.origin, d = ray.ray.direction;
+  let best = null;
+  for (const b of bears){
+    for (let i=0;i<N_NODE;i++){
+      const j=i*3;
+      const px=b.pos[j]-o.x, py=b.pos[j+1]-o.y, pz=b.pos[j+2]-o.z;
+      const t = px*d.x + py*d.y + pz*d.z;
+      if (t < 0) continue;
+      const qx = px - d.x*t, qy = py - d.y*t, qz = pz - d.z*t;
+      const dist = Math.hypot(qx,qy,qz);
+      const r = RADV[i]*b.bulge[i]*1.18 + 0.03;
+      if (dist < r){
+        const score = dist - t*0.02;
+        if (!best || score < best.score) best = { bear:b, node:i, t, score, point:new THREE.Vector3(o.x+d.x*t, o.y+d.y*t, o.z+d.z*t) };
+      }
+    }
+  }
+  return best;
+}
+
+addEventListener('pointerdown', (e) => {
+  if (e.target !== renderer.domElement) return;
+  setRayFromEvent(e);
+  const hit = pickBear();
+  if (!hit) return;
+  grab = hit;
+  hit.bear.grabNode = hit.node;
+  dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(tmpV).negate(), hit.point);
+  grab.tx = hit.bear.pos[hit.node*3];
+  grab.ty = hit.bear.pos[hit.node*3+1];
+  grab.tz = hit.bear.pos[hit.node*3+2];
+  grab.vx = grab.vy = grab.vz = 0;
+  grab.bear.grab = grab;
+  grab.last = new THREE.Vector3(grab.tx, grab.ty, grab.tz);
+  grab.lastT = performance.now();
+  pointerVel.set(0,0,0);
+  cursorEl.classList.add('grab');
+  renderer.domElement.setPointerCapture?.(e.pointerId);
+});
+
+addEventListener('pointermove', (e) => {
+  curTX = e.clientX; curTY = e.clientY;
+  camTargetX = ((e.clientX/innerWidth)-0.5);
+  camTargetY = ((e.clientY/innerHeight)-0.5);
+  if (!grab) return;
+  setRayFromEvent(e);
+  if (ray.ray.intersectPlane(dragPlane, hitV)){
+    const now = performance.now();
+    const dt = Math.max(1/240, (now - grab.lastT)/1000);
+    const nx = hitV.x + grab.dx0, ny = hitV.y + grab.dy0, nz = hitV.z + grab.dz0;
+    pointerVel.set((nx-grab.tx)/dt, (ny-grab.ty)/dt, (nz-grab.tz)/dt);
+    if (pointerVel.length() > 26) pointerVel.setLength(26);
+    grab.tx = nx; grab.ty = ny; grab.tz = nz;
+    grab.lastT = now;
+  }
+}, { passive:true });
+
+function releaseGrab(){
+  if (!grab) return;
+  const b = grab.bear, i = grab.node;
+  b.grabNode = -1; b.grab = null;
+  // fling
+  b.vel[i*3]   = pointerVel.x*0.85;
+  b.vel[i*3+1] = pointerVel.y*0.85;
+  b.vel[i*3+2] = pointerVel.z*0.85;
+  // pancake -> launch
+  const det = b.detF;
+  if (det < 0.94){
+    const boost = (0.94 - det)*11;
+    for (let k=0;k<N_NODE;k++){
+      const j=k*3;
+      b.vel[j+1] += boost*(1 + 0.45*REST[j+1]);
+      b.vel[j]   += (Math.random()-0.5)*boost*0.25;
+      b.vel[j+2] += (Math.random()-0.5)*boost*0.25;
+    }
+  }
+  b.firstFrame = false;
+  grab = null;
+  cursorEl.classList.remove('grab');
+}
+addEventListener('pointerup', releaseGrab);
+addEventListener('pointercancel', releaseGrab);
+addEventListener('blur', releaseGrab);
+
+// grab offset bookkeeping on press
+addEventListener('pointerdown', (e) => {
+  if (!grab) return;
+  const b = grab.bear;
+  grab.dx0 = b.pos[grab.node*3]   - grab.point.x;
+  grab.dy0 = b.pos[grab.node*3+1] - grab.point.y;
+  grab.dz0 = b.pos[grab.node*3+2] - grab.point.z;
+}, true);
+
+/* cursor */
+let overUI = false;
+document.getElementById('panel').addEventListener('pointerenter', ()=>{ overUI=true; cursorEl.classList.add('ui'); });
+document.getElementById('panel').addEventListener('pointerleave', ()=>{ overUI=false; cursorEl.classList.remove('ui'); });
+
+/* =====================================================================================
+   8. UI
+   ===================================================================================== */
+let wobbleVal = 0.55;
+const wobEl = document.getElementById('wobble');
+const wobOut = document.getElementById('wobbleOut');
+wobEl.addEventListener('input', ()=>{ wobbleVal = wobEl.value/100; wobOut.textContent = wobEl.value; });
+
+let selectedFlavor = 0;
+const swWrap = document.getElementById('swatches');
+FLAVORS.forEach((f,i)=>{
+  const b = document.createElement('button');
+  b.className = 'sw';
+  b.setAttribute('aria-pressed', i===0 ? 'true' : 'false');
+  b.innerHTML = `<i style="background:#${f.base.toString(16).padStart(6,'0')}"></i><span>${f.name}</span>`;
+  b.addEventListener('click', ()=>{
+    selectedFlavor = i;
+    [...swWrap.children].forEach((c,k)=>c.setAttribute('aria-pressed', k===i?'true':'false'));
+    const x = (Math.random()-0.5)*3.4, z = (Math.random()-0.5)*2.2;
+    const nb = spawnBear(i, x, 4.2 + Math.random()*0.5, z, Math.random()*Math.PI*2);
+    for (let k=0;k<N_NODE;k++) nb.vel[k*3+1] = -1.5;
+    nb.firstFrame = true;
+  });
+  swWrap.appendChild(b);
+});
+document.getElementById('pour').addEventListener('click', ()=>pour(4));
+
+const stretchEl = document.getElementById('stretch');
+const bouncesEl = document.getElementById('bounces');
+let uiClock = 0;
+
+/* =====================================================================================
+   9. Main loop
+   ===================================================================================== */
+let camTargetX = 0, camTargetY = 0;
+const FIXED_MS = FIXED*1000;
+
+// initial lineup: resting on the table, softly settled
+const ONE = QS.has('one'), CALM = QS.has('calm');
+if (CALM) for (const b of []) b.idle = 1e9;
+(function initBears(){
+  if (ONE){ const b = spawnBear(Number(QS.get('one')||0), 0, RADCOL[IX.footL]-REST_Y, 0, 0);
+    if (QS.has('res')){ b.res = +QS.get('res'); b.net = new SurfaceNet(b.res); b.mesh.geometry = b.net.geometry; } b.firstFrame = true; b.idle = 1e9; return; }
+  const restY = RADCOL[IX.footL] - REST_Y;
+  for (let i=0;i<5;i++){
+    const x = -2.45 + i*1.24;
+    const z = (i%2 ? 0.42 : -0.34) + (Math.random()-0.5)*0.24;
+    const b = spawnBear(i, x, restY + 0.02, z, (Math.random()-0.5)*1.5 + (i-2)*0.22);
+    b.firstFrame = true;
+  }
+})();
+
+let last = performance.now();
+let acc = 0;
+let fpsAcc = 0, fpsN = 0;
+window.__stats = { fps:0, bears:0, ms:0 };
+window.__trace = (steps, every) => { const wob={ aS:0.006+0.030*wobbleVal, aL:0.030+0.070*wobbleVal }; const out=[]; for(let i=1;i<=steps;i++){ stepWorld(FIXED,wob); if(i%every===0) out.push({i, ...window.__debug()[0]}); } return out; };
+window.__sim = (steps) => { const wob = { aS: 0.006 + 0.030*wobbleVal, aL: 0.030 + 0.070*wobbleVal }; for (let i=0;i<steps;i++) stepWorld(FIXED, wob); return window.__debug(); };
+window.__debug = () => bears.map(b => ({
+  id:b.id, f:FLAVORS[b.fi].name,
+  c:[+b.c[0].toFixed(2),+b.c[1].toFixed(2),+b.c[2].toFixed(2)],
+  v:b.net.nVerts, i:b.net.nIdx, dropQ:b.net.dropQ, G:+b.G.toFixed(2), det:+b.detF.toFixed(2),
+  ys:[...b.pos].filter((_,k)=>k%3===1).map(y=>+y.toFixed(2)),
+  xs:[...b.pos].filter((_,k)=>k%3===0).map(y=>+y.toFixed(2)),
+  zs:[...b.pos].filter((_,k)=>k%3===2).map(y=>+y.toFixed(2)),
+  Rdiag:[+b.Rm[0].toFixed(2),+b.Rm[4].toFixed(2),+b.Rm[8].toFixed(2),+b.Rm[2].toFixed(2)],
+  stretch:Math.max(...LINKS.map(L=>Math.hypot(b.pos[L.b*3]-b.pos[L.a*3],b.pos[L.b*3+1]-b.pos[L.a*3+1],b.pos[L.b*3+2]-b.pos[L.a*3+2])/L.L0)).toFixed(2)
+}));
+
+function frame(now){
+  requestAnimationFrame(frame);
+  let dt = (now - last)/1000; last = now;
+  if (dt > 0.05) dt = 0.05;
+
+  const wob = { aS: 0.006 + 0.030*wobbleVal, aL: 0.030 + 0.070*wobbleVal };
+
+  acc += dt;
+  let steps = 0;
+  while (acc >= FIXED && steps < 8){ stepWorld(FIXED, wob); acc -= FIXED; steps++; }
+  if (steps === 8) acc = 0;
+
+  const t0 = performance.now();
+  updateScene();
+  const t1 = performance.now();
+
+  // camera parallax
+  camera.position.x += (camTargetX*0.55 - camera.position.x)*0.045;
+  camera.position.y += (3.35 - camTargetY*0.35 - camera.position.y)*0.045;
+  camera.lookAt(0, 0.85, 0);
+
+  renderer.render(scene, camera);
+
+  // bounces
+  let bb = 0;
+  for (const b of bears){ bb += b.bounceEvents; b.bounceEvents = 0; }
+  totalBounces += bb;
+
+  // cursor
+  curX += (curTX-curX)*0.35; curY += (curTY-curY)*0.35;
+  cursorEl.style.transform = `translate3d(${curX}px, ${curY}px, 0)`;
+
+  // ui readouts (10 Hz)
+  uiClock += dt;
+  if (uiClock > 0.1){
+    uiClock = 0;
+    let mx = 1;
+    for (const b of bears){
+      for (let li=0; li<LINKS.length; li++){
+        const L = LINKS[li];
+        const ia=L.a*3, ib=L.b*3;
+        const d = Math.hypot(b.pos[ib]-b.pos[ia], b.pos[ib+1]-b.pos[ia+1], b.pos[ib+2]-b.pos[ia+2]);
+        const s = d/L.L0;
+        if (s > mx) mx = s;
+      }
+    }
+    stretchEl.innerHTML = mx.toFixed(2) + '<em>×</em>';
+    bouncesEl.textContent = String(totalBounces);
+  }
+
+  fpsAcc += dt; fpsN++;
+  if (fpsAcc > 0.5){ window.__stats.fps = fpsN/fpsAcc; window.__stats.bears = bears.length; window.__stats.ms = (t1-t0); fpsAcc = 0; fpsN = 0; }
+}
+requestAnimationFrame(frame);
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

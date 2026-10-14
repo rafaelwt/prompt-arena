@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gummy Bears — soft-body candy</title>
+<link rel="icon" href="data:,">
+<link rel="icon" href="data:,">
+<style>
+  :root{ --ink:#161412; --muted:#7a756e; --line:rgba(22,20,18,.10); --serif:Georgia,'Times New Roman',serif; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    overflow:hidden; background:#ffffff; color:var(--ink);
+    font-family:'Inter', ui-sans-serif, system-ui, sans-serif;
+    cursor:none;
+  }
+  #app{ position:fixed; inset:0; }
+  #app canvas{ display:block; }
+
+  .ui{ position:fixed; inset:0; pointer-events:none; z-index:5; }
+
+  .masthead{ position:absolute; left:48px; top:44px; max-width:60vw; }
+  .kicker{
+    font-size:11px; letter-spacing:.34em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:18px; font-weight:600;
+  }
+  h1{
+    font-family:var(--serif);
+    font-style:italic; font-weight:500;
+    font-size:clamp(64px, 10.5vw, 148px);
+    line-height:.9; letter-spacing:-0.035em; color:var(--ink);
+  }
+  h1 .dot{ color:#e23b3b; }
+  .subtitle{
+    margin-top:22px; font-size:14px; line-height:1.65; color:var(--muted);
+    max-width:360px;
+  }
+  .subtitle em{ font-style:normal; color:var(--ink); font-weight:600; }
+
+  .meta{
+    position:absolute; left:48px; bottom:40px;
+    font-size:10.5px; letter-spacing:.26em; text-transform:uppercase; color:var(--muted);
+  }
+  .hint{
+    position:absolute; left:50%; bottom:40px; transform:translateX(-50%);
+    font-size:11.5px; letter-spacing:.08em; color:#a39d94; white-space:nowrap;
+  }
+  .hint b{ color:var(--ink); font-weight:600; }
+
+  .card{
+    position:absolute; right:48px; top:50%; transform:translateY(-50%);
+    width:264px; pointer-events:auto;
+    background:rgba(255,255,255,.78);
+    backdrop-filter:blur(16px) saturate(1.2);
+    -webkit-backdrop-filter:blur(16px) saturate(1.2);
+    border:1px solid var(--line); border-radius:20px;
+    box-shadow:0 24px 70px rgba(30,25,20,.10), 0 2px 8px rgba(30,25,20,.05);
+    padding:22px 22px 20px;
+  }
+  .card h2{
+    font-family:var(--serif); font-style:italic;
+    font-size:21px; font-weight:500; letter-spacing:-.01em;
+  }
+  .card .sub{ font-size:11px; color:var(--muted); margin-top:3px; letter-spacing:.04em; }
+  .rule{ height:1px; background:var(--line); margin:14px 0; }
+
+  .swatches{ display:flex; gap:10px; align-items:center; }
+  .sw{
+    width:24px; height:24px; border-radius:50%; border:none; cursor:none; padding:0;
+    box-shadow: inset -2px -3px 5px rgba(0,0,0,.22), inset 2px 3px 4px rgba(255,255,255,.55), 0 2px 5px rgba(0,0,0,.15);
+    transition:transform .15s ease;
+  }
+  .sw:hover{ transform:scale(1.22); }
+  .sw.cherry{   background:radial-gradient(circle at 32% 28%, #ff8f96, #f5222d 55%, #a3120c); }
+  .sw.orange{   background:radial-gradient(circle at 32% 28%, #ffc06e, #ff8a1f 55%, #a8450a); }
+  .sw.lemon{    background:radial-gradient(circle at 32% 28%, #fff3a0, #ffd830 55%, #b8910a); }
+  .sw.apple{    background:radial-gradient(circle at 32% 28%, #b0ee8e, #5fca3c 55%, #1d6b12); }
+  .sw.pineapple{background:radial-gradient(circle at 32% 28%, #ffffff, #f7ecc4 55%, #d9c384); }
+  .swatches .lbl{ font-size:10.5px; color:var(--muted); letter-spacing:.05em; margin-left:2px; }
+
+  .row{ display:flex; justify-content:space-between; align-items:baseline; }
+  .row .k{ font-size:10.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .row .v{ font-family:var(--serif); font-style:italic; font-size:24px; font-weight:500; }
+  .row .v small{ font-size:12px; font-family:'Inter'; font-style:normal; color:var(--muted); }
+
+  input[type=range]{
+    width:100%; appearance:none; -webkit-appearance:none; height:2px;
+    background:#d8d3cb; border-radius:2px; outline:none; margin:10px 0 2px; cursor:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:#fff; border:1.5px solid var(--ink); box-shadow:0 1px 4px rgba(0,0,0,.2);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%;
+    background:#fff; border:1.5px solid var(--ink);
+  }
+  .slabels{ display:flex; justify-content:space-between; font-size:9.5px; color:#b0aaa1; letter-spacing:.14em; text-transform:uppercase; }
+
+  .pour{
+    width:100%; margin-top:16px; padding:13px 0; border:none; border-radius:999px;
+    background:var(--ink); color:#fff; font-family:'Inter'; font-size:12px; font-weight:600;
+    letter-spacing:.18em; text-transform:uppercase; cursor:none;
+    transition:transform .15s ease, background .2s ease;
+  }
+  .pour:hover{ transform:scale(1.03); background:#000; }
+  .pour:active{ transform:scale(.97); }
+
+  #cursor{
+    position:fixed; left:0; top:0; z-index:50; pointer-events:none;
+    width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%;
+    border:1.5px solid rgba(22,20,18,.45);
+    transition:width .18s ease, height .18s ease, margin .18s ease, border-color .18s ease, background .18s ease;
+  }
+  #cursor::after{
+    content:''; position:absolute; left:50%; top:50%; width:3px; height:3px;
+    margin:-1.5px 0 0 -1.5px; border-radius:50%; background:rgba(22,20,18,.6);
+  }
+  #cursor.grab{
+    width:58px; height:58px; margin:-29px 0 0 -29px;
+    border-color:rgba(22,20,18,.9); background:rgba(22,20,18,.05);
+  }
+
+  @media (max-width: 900px){
+    .masthead{ left:24px; top:24px; }
+    .subtitle{ display:none; }
+    .card{ right:16px; left:16px; width:auto; top:auto; bottom:16px; transform:none; }
+    .meta,.hint{ display:none; }
+  }
+</style>
+<script>
+  window.__errors = [];
+  window.addEventListener('error', e => window.__errors.push(String(e.message || e)));
+  window.addEventListener('unhandledrejection', e => window.__errors.push('rejection: ' + String(e.reason)));
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="ui">
+  <div class="masthead">
+    <div class="kicker">Soft-body confectionery · N°01</div>
+    <h1>Gummy<br>Bears<span class="dot">.</span></h1>
+    <p class="subtitle">
+      A handful of translucent bears on a white table.
+      <em>Grab one, stretch it, fling it.</em> Real jelly physics —
+      squash, wobble, bounce — wrapped in candy-clear transmission.
+    </p>
+  </div>
+
+  <div class="meta">Transmission · Beer–Lambert · Shape matching</div>
+  <div class="hint"><b>drag</b> a bear · <b>stretch</b> it · <b>fling</b> to throw · <b>double-click</b> to poke</div>
+
+  <aside class="card">
+    <h2>The Flavors</h2>
+    <div class="sub">click a swatch to drop one in</div>
+    <div class="rule"></div>
+    <div class="swatches">
+      <button class="sw cherry"    data-f="0" title="Cherry"></button>
+      <button class="sw orange"    data-f="1" title="Orange"></button>
+      <button class="sw lemon"     data-f="2" title="Lemon"></button>
+      <button class="sw apple"     data-f="3" title="Apple"></button>
+      <button class="sw pineapple" data-f="4" title="Pineapple"></button>
+      <span class="lbl" id="flavorName">cherry</span>
+    </div>
+    <div class="rule"></div>
+    <div class="row"><span class="k">Stretch</span><span class="v" id="stretchVal">1.00<small>×</small></span></div>
+    <div class="row" style="margin-top:6px"><span class="k">Bounces</span><span class="v" id="bounceVal">0</span></div>
+    <div class="rule"></div>
+    <div class="row"><span class="k">Wobble</span><span class="v" style="font-size:13px" id="wobbleVal">jelly</span></div>
+    <input type="range" id="wobble" min="0" max="100" value="55"/>
+    <div class="slabels"><span>firm</span><span>jelly</span></div>
+    <button class="pour" id="pour">Pour more bears</button>
+  </aside>
+</div>
+
+<div id="cursor"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+/* ============================================================
+   Flavors / config
+============================================================ */
+const FLAVORS = [
+  { key:'cherry',    name:'cherry',    color:0xff3a45, absorb:0x9d1208, attDist:0.50, rough:0.16, trans:0.90 },
+  { key:'orange',    name:'orange',    color:0xff8a1f, absorb:0xa8450a, attDist:0.50, rough:0.16, trans:0.90 },
+  { key:'lemon',     name:'lemon',     color:0xffd830, absorb:0xb8910a, attDist:0.62, rough:0.15, trans:0.90 },
+  { key:'apple',     name:'apple',     color:0x5fca3c, absorb:0x1d6b12, attDist:0.50, rough:0.16, trans:0.90 },
+  { key:'pineapple', name:'pineapple', color:0xfbe9b8, absorb:0xe3d194, attDist:1.40, rough:0.07, trans:0.96 },
+];
+const G = 9.0;
+const MAX_BEARS = 14;
+const DEBUG = location.search.includes('debug');
+
+/* ============================================================
+   Renderer / scene / lights
+============================================================ */
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+let dpr = Math.min(window.devicePixelRatio, 1.6);
+renderer.setPixelRatio(dpr);
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+
+const camera = new THREE.PerspectiveCamera(32, innerWidth/innerHeight, 0.1, 40);
+camera.position.set(0, 2.35, 6.2);
+camera.lookAt(0, 0.52, 0);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.035).texture;
+
+const key = new THREE.DirectionalLight(0xfff4e8, 3.0);
+key.position.set(2.6, 5.4, 3.4);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -3.6; key.shadow.camera.right = 3.6;
+key.shadow.camera.top = 3.6;   key.shadow.camera.bottom = -3.6;
+key.shadow.camera.near = 1;    key.shadow.camera.far = 14;
+key.shadow.bias = -0.0004;
+key.shadow.normalBias = 0.02;
+scene.add(key);
+
+const back = new THREE.DirectionalLight(0xeaf0ff, 1.8);
+back.position.set(-3.4, 3.0, -3.6);
+scene.add(back);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xefe7dd, 0.5));
+
+/* the white table (shadow catcher) */
+const groundShadow = new THREE.Mesh(
+  new THREE.PlaneGeometry(24, 24).rotateX(-Math.PI/2),
+  new THREE.ShadowMaterial({ opacity: 0.13 })
+);
+groundShadow.receiveShadow = true;
+scene.add(groundShadow);
+
+/* soft colored blob shadow, tinted per bear */
+function makeBlobShadow(colorHex){
+  const mat = new THREE.ShaderMaterial({
+    transparent:true, depthWrite:false,
+    uniforms:{ uColor:{ value:new THREE.Color(colorHex) }, uA:{ value:0.5 } },
+    vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader:`
+      uniform vec3 uColor; uniform float uA; varying vec2 vUv;
+      void main(){
+        float r = length(vUv - 0.5) * 2.0;
+        float a = smoothstep(1.0, 0.1, r); a *= a;
+        vec3 col = mix(uColor, uColor*0.5, smoothstep(0.55,0.0,r));
+        gl_FragColor = vec4(col, a * uA);
+      }`
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7).rotateX(-Math.PI/2), mat);
+  m.position.y = 0.004; m.renderOrder = 2;
+  return m;
+}
+
+/* ============================================================
+   Gummy shaders — transmission + Beer–Lambert glow +
+   oriented-particle skinning (16 bone matrices, GPU blend)
+============================================================ */
+const GUMMY_SKIN_FN = `
+uniform mat4 uBoneMat[16];
+uniform vec3 uBonePos[16];
+uniform float uInvH2;
+vec3 gummySkin( vec3 u, vec3 nrm, out vec3 outN ){
+  vec3 acc = vec3(0.0); vec3 nacc = vec3(0.0); float wsum = 0.0;
+  for ( int k = 0; k < 16; k++ ){
+    vec3 dk = u - uBonePos[k];
+    float w = exp( -dot( dk, dk ) * uInvH2 ) + 0.0004;
+    acc  += w * ( uBoneMat[k] * vec4( u, 1.0 ) ).xyz;
+    nacc += w * ( mat3( uBoneMat[k] ) * nrm );
+    wsum += w;
+  }
+  outN = nacc / wsum;
+  return acc / wsum;
+}
+`;
+const GUMMY_GLOW_FRAG = `
+{
+  vec3 gV  = normalize( vWorldPos - cameraPosition );
+  float gMu = clamp( dot( gV, normalize( directLight.direction ) ), 0.0, 1.0 );
+  vec3 gSig = -log( max( uAbsorbColor, vec3( 0.001 ) ) );
+  float gTh = uThickness * ( 1.0 + clamp( vGummyThick * 1.8, -0.65, 2.5 ) );
+  vec3 gTr = exp( -gSig * gTh * ( 1.0 + 0.8 * gMu ) );
+  reflectedLight.directDiffuse += directLight.color * gTr * ( uBoost * ( 0.35 + 0.65 * gMu ) ) * diffuseColor.rgb;
+}
+#include <lights_fragment_end>
+`;
+
+function bearBodyMaterial(bear){
+  const f = bear.flavor;
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: f.color, roughness: f.rough, metalness: 0,
+    transmission: f.trans, ior: 1.42, thickness: 0.4,
+    attenuationColor: f.color, attenuationDistance: f.attDist,
+    clearcoat: 1.0, clearcoatRoughness: 0.08,
+    specularIntensity: 1.0, envMapIntensity: 0.7,
+  });
+  const absorb = new THREE.Color(f.absorb);
+  const faceColor = new THREE.Color(f.color).multiplyScalar(0.45);
+  mat.onBeforeCompile = (sh)=>{
+    sh.uniforms.uBoneMat  = { value: bear.boneArray };
+    sh.uniforms.uBonePos  = { value: BONE_POS };
+    sh.uniforms.uInvH2    = { value: 3.5 };
+    sh.uniforms.uRigidQ   = { value: bear.quat };
+    sh.uniforms.uRigidP   = { value: bear.pos };
+    sh.uniforms.uAbsorbColor = { value: absorb };
+    sh.uniforms.uThickness   = { value: 0.55 };
+    sh.uniforms.uBoost       = { value: 1.9 };
+    sh.uniforms.uFaceColor   = { value: faceColor };
+
+    sh.vertexShader = `
+      attribute float aFace;
+      uniform vec4 uRigidQ; uniform vec3 uRigidP;
+      varying float vFace; varying vec3 vWorldPos; varying float vGummyThick;
+      ${GUMMY_SKIN_FN}
+    ` + sh.vertexShader
+      .replace('#include <beginnormal_vertex>', `
+        vec3 gN; vec3 gSkinned = gummySkin( position, normal, gN );
+        vec3 rigidN = normal + 2.0 * cross( uRigidQ.xyz, cross( uRigidQ.xyz, normal ) + uRigidQ.w * normal );
+        float gNl = length( gN );
+        vec3 objectNormal = mix( rigidN, gN / max( gNl, 1e-4 ), smoothstep( 0.08, 0.35, gNl ) );
+        vFace = aFace;
+        vWorldPos = gSkinned;
+        vec3 grq = position + 2.0 * cross( uRigidQ.xyz, cross( uRigidQ.xyz, position ) + uRigidQ.w * position );
+        vGummyThick = length( gSkinned - ( grq + uRigidP ) );
+      `)
+      .replace('#include <begin_vertex>', `
+        vec3 transformed = gSkinned;
+      `);
+
+    sh.fragmentShader = `
+      uniform vec3 uAbsorbColor; uniform float uThickness; uniform float uBoost; uniform vec3 uFaceColor;
+      varying float vFace; varying vec3 vWorldPos; varying float vGummyThick;
+    ` + sh.fragmentShader
+      .replace('#include <color_fragment>', `
+        #include <color_fragment>
+        diffuseColor.rgb = mix( diffuseColor.rgb, uFaceColor, vFace );
+      `)
+      .replace('#include <lights_fragment_end>', GUMMY_GLOW_FRAG);
+  };
+  mat.customProgramCacheKey = ()=> 'gummyBody';
+  return mat;
+}
+function bearDepthMaterial(bear){
+  const dm = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+  dm.onBeforeCompile = (sh)=>{
+    sh.uniforms.uBoneMat = { value: bear.boneArray };
+    sh.uniforms.uBonePos = { value: BONE_POS };
+    sh.uniforms.uInvH2   = { value: 3.5 };
+    sh.vertexShader = GUMMY_SKIN_FN + sh.vertexShader
+      .replace('#include <begin_vertex>', `
+        vec3 gN2; vec3 transformed = gummySkin( position, normal, gN2 );
+      `);
+  };
+  dm.customProgramCacheKey = ()=> 'gummyDepth';
+  return dm;
+}
+function strandMaterial(flavor){
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: flavor.color, roughness: flavor.rough, metalness: 0,
+    transmission: flavor.trans, ior: 1.42, thickness: 0.15,
+    attenuationColor: flavor.color, attenuationDistance: flavor.attDist,
+    clearcoat: 1.0, clearcoatRoughness: 0.1,
+    envMapIntensity: 0.7,
+  });
+  const absorb = new THREE.Color(flavor.absorb);
+  mat.onBeforeCompile = (sh)=>{
+    sh.uniforms.uAbsorbColor = { value: absorb };
+    sh.uniforms.uThickness   = { value: 0.22 };
+    sh.uniforms.uBoost       = { value: 1.1 };
+    sh.vertexShader = 'varying vec3 vWorldPos;\nvarying float vGummyThick;\n' + sh.vertexShader
+      .replace('#include <worldpos_vertex>', `
+        #include <worldpos_vertex>
+        vWorldPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;
+        vGummyThick = 0.0;
+      `);
+    sh.fragmentShader = `
+      uniform vec3 uAbsorbColor; uniform float uThickness; uniform float uBoost;
+      varying vec3 vWorldPos; varying float vGummyThick;
+    ` + sh.fragmentShader
+      .replace('#include <lights_fragment_end>', GUMMY_GLOW_FRAG);
+  };
+  mat.customProgramCacheKey = ()=> 'gummyStrand';
+  return mat;
+}
+
+/* ============================================================
+   Bear geometry — melted implicit-style surface + molded face
+============================================================ */
+function tagFace(g, v){
+  const n = g.attributes.position.count;
+  g.setAttribute('aFace', new THREE.BufferAttribute(new Float32Array(n).fill(v), 1));
+  return g;
+}
+function uvSphere(c, r, o = {}){
+  const g = new THREE.SphereGeometry(r, 44, 24);
+  const p = g.attributes.position, v = new THREE.Vector3();
+  const f = o.f || 2.5, s = o.s || 0, nAmp = o.noise || 0;
+  for (let i = 0; i < p.count; i++){
+    v.fromBufferAttribute(p, i);
+    const nx = v.x/r, ny = v.y/r, nz = v.z/r;
+    const bump = 1 + nAmp * Math.sin(nx*f + s) * Math.sin(ny*f*1.17 + s*1.71) * Math.sin(nz*f*0.93 + s*2.33);
+    v.multiplyScalar(bump);
+    v.x *= (o.sx||1); v.y *= (o.sy||1); v.z *= (o.sz||1);
+    if (o.rot) v.applyQuaternion(o.rot);
+    v.add(c);
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return tagFace(g, 0);
+}
+function tubeBetween(a, b, r){
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  const g = new THREE.CylinderGeometry(r, r, len, 26, 1, true);
+  g.translate(0, len/2, 0);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize()));
+  g.translate(a.x, a.y, a.z);
+  return tagFace(g, 0);
+}
+function capsuleBetween(a, b, r){
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  const g = new THREE.CapsuleGeometry(r, len, 6, 24);
+  g.translate(0, len/2, 0);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize()));
+  g.translate(a.x, a.y, a.z);
+  return tagFace(g, 0);
+}
+const V3 = (x,y,z)=> new THREE.Vector3(x,y,z);
+
+function buildBearGeometry(seed){
+  const s = seed * 13.7;
+  const parts = [];
+  parts.push(uvSphere(V3(0,-0.06,0),     0.345, { sy:1.16, noise:0.028, f:2.4, s }));
+  parts.push(uvSphere(V3(0, 0.05,0.10),  0.315, { sy:1.05, sz:1.02, noise:0.02, f:2.1, s:s+2 }));
+  parts.push(uvSphere(V3(0, 0.28,0.02),  0.250, { noise:0.02, f:2.2, s:s+4 }));
+  parts.push(uvSphere(V3(0, 0.60,0.02),  0.250, { sy:1.02, sz:0.98, noise:0.018, f:2.0, s:s+6 }));
+  parts.push(uvSphere(V3(0, 0.56,0.20),  0.125, { sz:1.1, noise:0.014, f:3.0, s:s+8 }));
+  const qL = new THREE.Quaternion().setFromUnitVectors(V3(0,0,1), V3(-0.145,0.175,-0.02).normalize());
+  const qR = new THREE.Quaternion().setFromUnitVectors(V3(0,0,1), V3( 0.145,0.175,-0.02).normalize());
+  parts.push(uvSphere(V3(-0.145,0.775,0), 0.125, { sz:0.62, rot:qL, noise:0.02, f:3.2, s:s+10 }));
+  parts.push(uvSphere(V3( 0.145,0.775,0), 0.125, { sz:0.62, rot:qR, noise:0.02, f:3.2, s:s+11 }));
+  parts.push(uvSphere(V3(-0.335,0.15,0.03), 0.150, { noise:0.026, f:2.6, s:s+12 }));
+  parts.push(uvSphere(V3( 0.335,0.15,0.03), 0.150, { noise:0.026, f:2.6, s:s+13 }));
+  parts.push(uvSphere(V3(-0.50,0.03,0.05), 0.118, { noise:0.026, f:2.6, s:s+14 }));
+  parts.push(uvSphere(V3( 0.50,0.03,0.05), 0.118, { noise:0.026, f:2.6, s:s+15 }));
+  parts.push(uvSphere(V3(-0.135,-0.31,0.02), 0.180, { noise:0.024, f:2.4, s:s+16 }));
+  parts.push(uvSphere(V3( 0.135,-0.31,0.02), 0.180, { noise:0.024, f:2.4, s:s+17 }));
+  parts.push(capsuleBetween(V3(-0.145,-0.32,0.03), V3(-0.205,-0.565,0.155), 0.125));
+  parts.push(capsuleBetween(V3( 0.145,-0.32,0.03), V3( 0.205,-0.565,0.155), 0.125));
+  parts.push(uvSphere(V3(0,-0.20,-0.26), 0.105, { noise:0.03, f:3.0, s:s+18 }));
+  parts.push(tubeBetween(V3(0,-0.06,0),    V3(0,0.05,0.10), 0.26));
+  parts.push(tubeBetween(V3(0, 0.05,0.05), V3(0,0.28,0.02), 0.22));
+  parts.push(tubeBetween(V3(0, 0.28,0.02), V3(0,0.56,0.02), 0.16));
+  parts.push(tubeBetween(V3(-0.16,-0.20,0.01), V3(0.16,-0.20,0.01), 0.16));
+  // molded face (aFace = 1)
+  const eyeL = new THREE.SphereGeometry(0.027, 12, 10); eyeL.scale(1,1.2,0.55); eyeL.translate(-0.088, 0.635, 0.247);
+  const eyeR = new THREE.SphereGeometry(0.027, 12, 10); eyeR.scale(1,1.2,0.55); eyeR.translate( 0.088, 0.635, 0.247);
+  const nose = new THREE.SphereGeometry(0.030, 12, 10); nose.scale(1.25,0.85,0.6); nose.translate(0, 0.585, 0.332);
+  parts.push(tagFace(eyeL,1), tagFace(eyeR,1), tagFace(nose,1));
+  return mergeGeometries(parts);
+}
+
+/* ============================================================
+   Soft body — 16 mass points + shape matching + strands
+============================================================ */
+const POINT_DEFS = [
+  ['body',  [ 0,    -0.06,  0   ], 0.34,  1.30],
+  ['belly', [ 0,     0.05,  0.15], 0.30,  0.80],
+  ['chest', [ 0,     0.28,  0.02], 0.24,  0.70],
+  ['head',  [ 0,     0.60,  0.02], 0.24,  0.90],
+  ['earL',  [-0.145, 0.775, 0   ], 0.11,  0.35],
+  ['earR',  [ 0.145, 0.775, 0   ], 0.11,  0.35],
+  ['snout', [ 0,     0.565, 0.205],0.12,  0.30],
+  ['armL',  [-0.33,  0.14,  0.03], 0.155, 0.50],
+  ['armR',  [ 0.33,  0.14,  0.03], 0.155, 0.50],
+  ['handL', [-0.50,  0.03,  0.05], 0.12,  0.35],
+  ['handR', [ 0.50,  0.03,  0.05], 0.12,  0.35],
+  ['hipL',  [-0.135,-0.31,  0.02], 0.18,  0.60],
+  ['hipR',  [ 0.135,-0.31,  0.02], 0.18,  0.60],
+  ['footL', [-0.19, -0.50,  0.09], 0.155, 0.45],
+  ['footR', [ 0.19, -0.50,  0.09], 0.155, 0.45],
+  ['tail',  [ 0,    -0.22, -0.26], 0.11,  0.30],
+];
+const IDX = {}; POINT_DEFS.forEach((d,i)=> IDX[d[0]] = i);
+const NP = POINT_DEFS.length;
+const BONE_POS = new Float32Array(NP*3);
+POINT_DEFS.forEach((d,i)=>{ BONE_POS[i*3]=d[1][0]; BONE_POS[i*3+1]=d[1][1]; BONE_POS[i*3+2]=d[1][2]; });
+
+const STRAND_DEFS = [
+  ['chest','head', 0.140], ['head','earL', 0.090], ['head','earR', 0.090],
+  ['head','snout', 0.090],
+  ['chest','armL', 0.105], ['armL','handL',0.095],
+  ['chest','armR', 0.105], ['armR','handR',0.095],
+  ['body','hipL',  0.130], ['hipL','footL',0.115],
+  ['body','hipR',  0.130], ['hipR','footR',0.115],
+  ['body','tail',  0.075],
+];
+
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
+const _m3a = new THREE.Matrix3(), _m3b = new THREE.Matrix3(), _m3c = new THREE.Matrix3();
+
+class SoftBody {
+  constructor(){
+    this.mass = new Float32Array(NP);
+    this.r0 = []; this.pos = []; this.vel = [];
+    for (let i = 0; i < NP; i++){
+      const d = POINT_DEFS[i];
+      this.mass[i] = d[3];
+      this.r0.push(new THREE.Vector3(...d[1]));
+      this.pos.push(new THREE.Vector3(...d[1]));
+      this.vel.push(new THREE.Vector3());
+    }
+    this.F = Array.from({length:NP}, ()=> new THREE.Vector3());
+    /* rest inertia (for orientation extraction) */
+    const rc = this.r0.reduce((a,v)=>a.clone().add(v), new THREE.Vector3()).multiplyScalar(1/NP);
+    const els = new Float32Array(9);
+    for (let i = 0; i < NP; i++){
+      const d = _v1.subVectors(this.r0[i], rc), m = this.mass[i];
+      const dc = [d.x, d.y, d.z];
+      for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) els[b*3+a] += m*dc[a]*dc[b];
+    }
+    this.restAinv = new THREE.Matrix3().fromArray(els).invert();
+    this.restCenter = rc.clone();
+    /* strands */
+    this.strands = STRAND_DEFS.map(([a,b,r])=>({
+      a:IDX[a], b:IDX[b], r0:r,
+      rest: this.r0[IDX[a]].distanceTo(this.r0[IDX[b]]),
+    }));
+    /* particle min separation */
+    this.minSep = new Float32Array(NP*NP);
+    for (let i = 0; i < NP; i++)
+      for (let j = 0; j < NP; j++)
+        this.minSep[i*NP+j] = this.r0[i].distanceTo(this.r0[j]) * 0.5;
+    /* oriented-particle neighborhoods: weights + inverse gram */
+    this.nbrs = []; this.gramInv = [];
+    const SIG = 0.38;
+    for (let k = 0; k < NP; k++){
+      const list = [];
+      const g = new Float32Array(9);
+      for (let j = 0; j < NP; j++){
+        if (j === k) continue;
+        const d = this.r0[j].distanceTo(this.r0[k]);
+        if (d > 0.65) continue;
+        const w = Math.exp(-d*d/(2*SIG*SIG));
+        const dr = _v1.subVectors(this.r0[j], this.r0[k]);
+        list.push([j, w]);
+        g[0]+=w*dr.x*dr.x; g[1]+=w*dr.x*dr.y; g[2]+=w*dr.x*dr.z;
+        g[3]+=w*dr.y*dr.x; g[4]+=w*dr.y*dr.y; g[5]+=w*dr.y*dr.z;
+        g[6]+=w*dr.z*dr.x; g[7]+=w*dr.z*dr.y; g[8]+=w*dr.z*dr.z;
+      }
+      const eps = 0.004;
+      g[0]+=eps; g[4]+=eps; g[8]+=eps;
+      this.nbrs.push(list);
+      this.gramInv.push(new THREE.Matrix3().fromArray(g).invert());
+    }
+    this.restMats = Array.from({length:NP}, ()=> new THREE.Matrix4());
+  }
+  setRest(center, quat){
+    for (let i = 0; i < NP; i++){
+      const p = _v1.copy(this.r0[i]).applyQuaternion(quat).add(center);
+      this.restMats[i].makeRotationFromQuaternion(quat).setPosition(p.x, p.y, p.z);
+    }
+  }
+  applyForces(h, kShape, dragState){
+    const F = this.F, kStrand = 150;
+    for (let i = 0; i < NP; i++) F[i].set(0, -G * this.mass[i], 0);
+    for (let i = 0; i < NP; i++){
+      const p = this.pos[i], v = this.vel[i];
+      _v1.setFromMatrixPosition(this.restMats[i]);
+      const w = (0.55 + 0.45 * this.mass[i]);
+      F[i].x += kShape * (_v1.x - p.x) * w;
+      F[i].y += kShape * (_v1.y - p.y) * w;
+      F[i].z += kShape * (_v1.z - p.z) * w;
+      F[i].addScaledVector(v, -1.1 * this.mass[i]);
+    }
+    for (const s of this.strands){
+      const pa = this.pos[s.a], pb = this.pos[s.b];
+      _v1.subVectors(pb, pa);
+      const len = _v1.length() || 1e-6;
+      _v1.multiplyScalar(1/len);
+      const rel = _v2.subVectors(this.vel[s.b], this.vel[s.a]).dot(_v1);
+      const f = kStrand * (len - s.rest) + rel * 6.0;
+      F[s.a].addScaledVector(_v1,  f);
+      F[s.b].addScaledVector(_v1, -f);
+    }
+    if (dragState){
+      for (const [i, off] of dragState.particles){
+        _v1.copy(dragState.anchor).add(off).sub(this.pos[i]);
+        F[i].addScaledVector(_v1, 300 * this.mass[i]);
+        F[i].addScaledVector(this.vel[i], -16 * this.mass[i]);
+      }
+    }
+    for (let i = 0; i < NP; i++){
+      const im = 1/this.mass[i];
+      this.vel[i].addScaledVector(F[i], h * im);
+      const sp = this.vel[i].length();
+      if (sp > 30) this.vel[i].multiplyScalar(30/sp);
+      this.pos[i].addScaledVector(this.vel[i], h);
+    }
+  }
+  constraints(){
+    for (let i = 0; i < NP; i++){
+      const p = this.pos[i], v = this.vel[i];
+      if (p.y < 0.02){
+        p.y = 0.02;
+        if (v.y < 0) v.y *= -0.12;
+        v.x *= 0.86; v.z *= 0.86;
+      }
+    }
+    for (let i = 0; i < NP; i++){
+      for (let j = i+1; j < NP; j++){
+        const minD = this.minSep[i*NP+j];
+        const pi = this.pos[i], pj = this.pos[j];
+        const dx = pj.x-pi.x, dy = pj.y-pi.y, dz = pj.z-pi.z;
+        const d2 = dx*dx + dy*dy + dz*dz;
+        if (d2 < minD*minD && d2 > 1e-9){
+          const d = Math.sqrt(d2);
+          const pen = (minD - d) * 0.5;
+          const nx = dx/d, ny = dy/d, nz = dz/d;
+          const wi = 1/this.mass[i], wj = 1/this.mass[j], ws = wi+wj;
+          pi.x -= nx*pen*(wi/ws); pi.y -= ny*pen*(wi/ws); pi.z -= nz*pen*(wi/ws);
+          pj.x += nx*pen*(wj/ws); pj.y += ny*pen*(wj/ws); pj.z += nz*pen*(wj/ws);
+        }
+      }
+    }
+  }
+  extractQuaternion(outQ){
+    const c = _v2.set(0,0,0);
+    for (let i = 0; i < NP; i++) c.add(this.pos[i]);
+    c.multiplyScalar(1/NP);
+    const els = new Float32Array(9);
+    const d = new THREE.Vector3(), e = new THREE.Vector3();
+    for (let i = 0; i < NP; i++){
+      d.subVectors(this.pos[i], c); e.subVectors(this.r0[i], this.restCenter);
+      const m = this.mass[i];
+      const dc = [d.x, d.y, d.z], ec = [e.x, e.y, e.z];
+      for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) els[b*3+a] += m*dc[a]*ec[b];
+    }
+    const R = _m3a.fromArray(els).multiply(this.restAinv);
+    const r = R.elements;
+    if (!isFinite(r[0]+r[4]+r[8])) { outQ.identity(); return c.clone(); }
+    const m4 = new THREE.Matrix4();
+    m4.set(r[0],r[3],r[6],0, r[1],r[4],r[7],0, r[2],r[5],r[8],0, 0,0,0,1);
+    outQ.setFromRotationMatrix(m4);
+    return c.clone();
+  }
+  /* per-particle deformation gradient → bone matrices (column-major mat4) */
+  computeBones(out, quat){
+    const R = _m3c.setFromMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(quat));
+    const Rt = new THREE.Matrix3().copy(R).transpose();
+    for (let k = 0; k < NP; k++){
+      const pk = this.pos[k];
+      const D = _m3a; const de = D.elements; de.fill(0);
+      for (const [j, w] of this.nbrs[k]){
+        _v1.subVectors(this.pos[j], pk);                          // Δp
+        _v2.subVectors(this.r0[j], this.r0[k]);                   // Δr (local)
+        const rx = R.elements[0]*_v2.x + R.elements[3]*_v2.y + R.elements[6]*_v2.z;
+        const ry = R.elements[1]*_v2.x + R.elements[4]*_v2.y + R.elements[7]*_v2.z;
+        const rz = R.elements[2]*_v2.x + R.elements[5]*_v2.y + R.elements[8]*_v2.z;
+        const pc = [_v1.x, _v1.y, _v1.z], rc = [rx, ry, rz];
+        for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) de[b*3+a] += w*pc[a]*rc[b];
+      }
+      // F = D * (R * Ginv * Rt)
+      const G = _m3b.copy(R).multiply(this.gramInv[k]).multiply(Rt);
+      const Fm = D.multiply(G);
+      const det = Fm.determinant();
+      if (!isFinite(det) || det < 0.15 || det > 6){
+        Fm.identity();
+      } else {
+        const e = Fm.elements;
+        const mx = Math.max(Math.abs(e[0]-1),Math.abs(e[4]-1),Math.abs(e[8]-1),
+          Math.abs(e[1]),Math.abs(e[2]),Math.abs(e[3]),Math.abs(e[5]),Math.abs(e[6]),Math.abs(e[7]));
+        if (mx > 1.2){
+          const t = 1.2/mx;
+          for (let q = 0; q < 9; q++) e[q] = (q===0||q===4||q===8) ? 1+(e[q]-1)*t : e[q]*t;
+        }
+      }
+      // L = F * R  (world linear part)
+      const L = Fm.multiply(R);
+      const e = L.elements;
+      // t = p_k - L * r0_k
+      const r0 = this.r0[k];
+      const tx = pk.x - (e[0]*r0.x + e[3]*r0.y + e[6]*r0.z);
+      const ty = pk.y - (e[1]*r0.x + e[4]*r0.y + e[7]*r0.z);
+      const tz = pk.z - (e[2]*r0.x + e[5]*r0.y + e[8]*r0.z);
+      const o = k*16;
+      out[o+0]=e[0]; out[o+1]=e[1]; out[o+2]=e[2];  out[o+3]=0;
+      out[o+4]=e[3]; out[o+5]=e[4]; out[o+6]=e[5];  out[o+7]=0;
+      out[o+8]=e[6]; out[o+9]=e[7]; out[o+10]=e[8]; out[o+11]=0;
+      out[o+12]=tx;  out[o+13]=ty;  out[o+14]=tz;   out[o+15]=1;
+    }
+  }
+  stretchMetric(){
+    let mx = 1;
+    for (const s of this.strands){
+      const len = this.pos[s.a].distanceTo(this.pos[s.b]);
+      mx = Math.max(mx, len / s.rest);
+    }
+    return mx;
+  }
+}
+
+/* ============================================================
+   Bear — soft body + rigid rounded-box proxy + visuals
+============================================================ */
+const HX = 0.48, HY = 0.72, HZ = 0.42, CR = 0.15;
+const COFF = new THREE.Vector3(0, 0.13, 0);
+const SPHERE_OFFS = [];
+for (const sx of [-1,1]) for (const sy of [-1,1]) for (const sz of [-1,1])
+  SPHERE_OFFS.push(new THREE.Vector3(sx*(HX-CR), sy*(HY-CR), sz*(HZ-CR)));
+
+let bearGeom = null;
+const strandGeomCache = {};
+
+class Bear {
+  constructor(flavorIdx, pos, yaw){
+    this.flavor = FLAVORS[flavorIdx];
+    this.flavorIdx = flavorIdx;
+    this.pos = pos.clone();
+    this.vel = new THREE.Vector3();
+    this.quat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), yaw);
+    this.ang = new THREE.Vector3();
+    this.soft = new SoftBody();
+    this.boneArray = new Float32Array(16*16);
+    this.grounded = false;
+    this.nextHop = 2 + Math.random()*4;
+
+    if (!bearGeom) bearGeom = buildBearGeometry(1);
+    this.mat = bearBodyMaterial(this);
+    this.mesh = new THREE.Mesh(bearGeom, this.mat);
+    this.mesh.castShadow = true;
+    this.mesh.frustumCulled = false;
+    this.mesh.customDepthMaterial = bearDepthMaterial(this);
+    scene.add(this.mesh);
+
+    this.strandMat = strandMaterial(this.flavor);
+    this.strandMeshes = this.soft.strands.map((s)=>{
+      const k = s.r0.toFixed(3);
+      let g = strandGeomCache[k];
+      if (!g){
+        g = new THREE.TubeGeometry(new THREE.LineCurve3(V3(0,-0.5,0), V3(0,0.5,0)), 10, s.r0, 9, false);
+        strandGeomCache[k] = g;
+      }
+      const m = new THREE.Mesh(g, this.strandMat);
+      m.frustumCulled = false;
+      scene.add(m);
+      return m;
+    });
+
+    this.colGeom = new RoundedBoxGeometry(2*HX, 2*HY, 2*HZ, 4, CR);
+    this.colMesh = new THREE.Mesh(this.colGeom,
+      DEBUG ? new THREE.MeshBasicMaterial({ wireframe:true, color:0x000000 }) : new THREE.MeshBasicMaterial({ visible:false }));
+    scene.add(this.colMesh);
+
+    this.blob = makeBlobShadow(this.flavor.color);
+    scene.add(this.blob);
+
+    // place particles at rest
+    for (let i = 0; i < NP; i++)
+      this.soft.pos[i].copy(this.soft.r0[i]).applyQuaternion(this.quat).add(this.pos);
+  }
+  colliderCenter(out){ return out.copy(COFF).applyQuaternion(this.quat).add(this.pos); }
+
+  step(h, kShape, drag, time){
+    const soft = this.soft;
+    this.vel.y -= G * h;
+    if (drag){
+      const desired = _v2.copy(drag.anchor).add(drag.grabOffset);
+      const cc = this.colliderCenter(_v3);
+      this.vel.addScaledVector(desired.sub(cc), 110 * h);
+      this.vel.multiplyScalar(Math.max(0, 1 - 13*h));
+      this.ang.multiplyScalar(Math.max(0, 1 - 8*h));
+    } else {
+      this.vel.multiplyScalar(Math.max(0, 1 - 0.12*h));
+      this.ang.multiplyScalar(Math.max(0, 1 - 0.6*h));
+    }
+    const wl = this.ang.length();
+    if (wl > 30) this.ang.multiplyScalar(30/wl);
+    this.pos.addScaledVector(this.vel, h);
+    if (wl > 1e-6){
+      _q.setFromAxisAngle(_v1.copy(this.ang).multiplyScalar(1/wl), wl * h);
+      this.quat.premultiply(_q).normalize();
+    }
+
+    soft.setRest(this.pos, this.quat);
+    soft.applyForces(h, kShape, drag && drag.bear === this ? drag : null);
+    soft.constraints();
+
+    /* feedback: particles steer the proxy (compare against EXPECTED centroid) */
+    const c = soft.extractQuaternion(_q);
+    const expected = _v3.copy(soft.restCenter).applyQuaternion(this.quat).add(this.pos);
+    _v1.subVectors(c, expected);
+    this.pos.addScaledVector(_v1, 0.35);
+    for (let i = 0; i < NP; i++) soft.pos[i].addScaledVector(_v1, -0.35);
+    this.quat.slerp(_q, 0.3).normalize();
+
+    /* idle hops */
+    if (!drag && this.grounded && time > this.nextHop && this.vel.lengthSq() < 0.6){
+      this.vel.y = 2.0 + Math.random()*1.4;
+      this.vel.x += (Math.random()-0.5)*0.8;
+      this.vel.z += (Math.random()-0.5)*0.8;
+      this.ang.set((Math.random()-0.5)*5, (Math.random()-0.5)*3, (Math.random()-0.5)*5);
+      this.nextHop = time + 2.5 + Math.random()*4.5;
+      this.grounded = false;
+    }
+  }
+  solveGround(onBounce){
+    const cc = this.colliderCenter(_v1);
+    const bottom = cc.y - HY;
+    this.grounded = false;
+    if (bottom < 0){
+      this.pos.y -= bottom;
+      if (this.vel.y < 0){
+        const impact = -this.vel.y;
+        this.vel.y = impact > 1.3 ? impact * 0.34 : 0;
+        if (impact > 1.3) onBounce(impact);
+        this.vel.x *= 0.88; this.vel.z *= 0.88;
+        this.ang.multiplyScalar(0.75);
+        this.ang.x += this.vel.z * 0.6; this.ang.z -= this.vel.x * 0.6;
+      }
+      this.grounded = true;
+    }
+    if (this.pos.x > 2.3){ this.pos.x = 2.3; this.vel.x *= -0.5; }
+    if (this.pos.x < -2.3){ this.pos.x = -2.3; this.vel.x *= -0.5; }
+    if (this.pos.z > 2.1){ this.pos.z = 2.1; this.vel.z *= -0.5; }
+    if (this.pos.z < -1.3){ this.pos.z = -1.3; this.vel.z *= -0.5; }
+  }
+  updateVisuals(){
+    this.soft.computeBones(this.boneArray, this.quat);
+    this.colMesh.position.copy(this.colliderCenter(_v1));
+    this.colMesh.quaternion.copy(this.quat);
+    this.colMesh.updateMatrixWorld();
+    const up = _v2.set(0,1,0);
+    for (let i = 0; i < this.strandMeshes.length; i++){
+      const s = this.soft.strands[i], m = this.strandMeshes[i];
+      const a = this.soft.pos[s.a], b = this.soft.pos[s.b];
+      m.position.addVectors(a, b).multiplyScalar(0.5);
+      _v3.subVectors(b, a);
+      const len = _v3.length() || 1e-6;
+      if (len > 1e-4) m.quaternion.setFromUnitVectors(up, _v3.multiplyScalar(1/len));
+      const stretch = len / s.rest;
+      // thinner when stretched; stay slim when compressed (surface mesh bulges instead)
+      const thick = stretch >= 1
+        ? Math.max(0.28, 1/Math.sqrt(stretch))
+        : Math.max(0.5, Math.pow(stretch, 0.8));
+      m.scale.set(thick, Math.min(len, s.rest*3), thick);
+      m.updateMatrixWorld();
+    }
+    this.blob.position.set(this.pos.x, 0.004, this.pos.z);
+    const hgt = Math.max(0, this.pos.y - 0.59);
+    this.blob.material.uniforms.uA.value = 0.5 * THREE.MathUtils.clamp(1 - hgt*0.55, 0.1, 1);
+    const sc = Math.min(1 + hgt*0.4, 1.55);
+    this.blob.scale.set(sc, 1, sc);
+  }
+  dispose(){
+    scene.remove(this.mesh, this.colMesh, this.blob);
+    for (const m of this.strandMeshes) scene.remove(m);
+    this.mat.dispose(); this.strandMat.dispose();
+    this.blob.material.dispose(); this.blob.geometry.dispose();
+    this.colGeom.dispose();
+  }
+}
+const _q = new THREE.Quaternion();
+
+/* ============================================================
+   World
+============================================================ */
+const bears = [];
+let bounceCount = 0, wobbleK = 60, simTime = 0, pourCount = 0;
+let drag = null;
+
+function spawnBear(flavorIdx, x, y, z, yaw){
+  if (bears.length >= MAX_BEARS){
+    const old = bears[0];
+    if (drag && old === drag.bear) return null;
+    bears.shift(); old.dispose();
+  }
+  const b = new Bear(flavorIdx, new THREE.Vector3(x, y, z), yaw ?? (Math.random()*0.9 - 0.45));
+  bears.push(b);
+  return b;
+}
+let lastF = -1, lastF2 = -1;
+function pickFlavor(){
+  let f = Math.floor(Math.random()*FLAVORS.length);
+  if (f === lastF && f === lastF2) f = (f + 1 + Math.floor(Math.random()*3)) % FLAVORS.length;
+  lastF2 = lastF; lastF = f;
+  return f;
+}
+function pour(n = 6, flavor = null){
+  for (let i = 0; i < n; i++){
+    const a = i * 2.4 + Math.random()*0.6;
+    const r = 0.2 + (i % 3) * 0.45;
+    const cx = (pourCount++ % 2 ? 0.30 : -0.50);
+    const f = flavor === 'rainbow' ? i % FLAVORS.length : (flavor ?? pickFlavor());
+    const b = spawnBear(f, cx + Math.cos(a)*r, 2.0 + i*0.5, 0.25 + Math.sin(a)*r*0.7);
+    if (b){
+      b.vel.set(-Math.cos(a)*0.5, -0.5, -Math.sin(a)*0.4);
+      b.ang.set(Math.random()*4-2, Math.random()*4-2, Math.random()*4-2);
+    }
+  }
+}
+function onBounce(){ bounceCount++; }
+
+const _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _n = new THREE.Vector3(), _rv = new THREE.Vector3(), _tq = new THREE.Vector3();
+function solveBearPairs(){
+  for (let i = 0; i < bears.length; i++){
+    for (let j = i+1; j < bears.length; j++){
+      const A = bears[i], B = bears[j];
+      const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, dy = B.pos.y - A.pos.y;
+      if (dx*dx + dz*dz > 6.8 || Math.abs(dy) > 2.2) continue;
+      const ca = A.colliderCenter(_pa).clone();
+      const cb = B.colliderCenter(_pb).clone();
+      for (let sa = 0; sa < 8; sa++){
+        const pa = _v1.copy(SPHERE_OFFS[sa]).applyQuaternion(A.quat).add(ca);
+        for (let sb = 0; sb < 8; sb++){
+          const pb = _v2.copy(SPHERE_OFFS[sb]).applyQuaternion(B.quat).add(cb);
+          _n.subVectors(pb, pa);
+          const dist = _n.length(), minD = CR*2;
+          if (dist >= minD || dist < 1e-6) continue;
+          _n.multiplyScalar(1/dist);
+          const pen = minD - dist;
+          A.pos.addScaledVector(_n, -pen*0.5);
+          B.pos.addScaledVector(_n,  pen*0.5);
+          const rv = _rv.subVectors(B.vel, A.vel).dot(_n);
+          if (rv < 0){
+            const imp = -(1+0.25)*rv*0.5;
+            A.vel.addScaledVector(_n, -imp);
+            B.vel.addScaledVector(_n,  imp);
+            if (-rv > 1.2) onBounce();
+          }
+          A.ang.addScaledVector(_tq.crossVectors(_pa.subVectors(pa, ca), _n), -0.15);
+          B.ang.addScaledVector(_tq.crossVectors(_pa.subVectors(pb, cb), _n),  0.15);
+        }
+      }
+    }
+  }
+}
+
+/* ============================================================
+   Interaction
+============================================================ */
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const cursorEl = document.getElementById('cursor');
+let mouseX = innerWidth/2, mouseY = innerHeight/2;
+
+function setNDC(e){ ndc.set((e.clientX/innerWidth)*2 - 1, -(e.clientY/innerHeight)*2 + 1); }
+function rayHitBear(e){
+  setNDC(e);
+  ray.setFromCamera(ndc, camera);
+  let best = null;
+  for (const b of bears){
+    const hits = ray.intersectObject(b.colMesh, false);
+    if (hits.length && (!best || hits[0].distance < best.dist))
+      best = { bear:b, point:hits[0].point.clone(), dist:hits[0].distance };
+  }
+  if (!best){
+    let dmin = 0.55;
+    for (const b of bears){
+      const c = b.colliderCenter(new THREE.Vector3());
+      const d = ray.ray.distanceToPoint(c);
+      if (d < dmin){ dmin = d; best = { bear:b, point:c.clone(), dist:ray.ray.origin.distanceTo(c) }; }
+    }
+  }
+  return best;
+}
+addEventListener('pointermove', (e)=>{
+  mouseX = e.clientX; mouseY = e.clientY;
+  cursorEl.style.transform = `translate(${mouseX}px, ${mouseY}px)`;
+  if (drag){
+    setNDC(e);
+    ray.setFromCamera(ndc, camera);
+    const t = performance.now()/1000;
+    const p = new THREE.Vector3();
+    if (ray.ray.intersectPlane(drag.plane, p)){
+      drag.velTrack.copy(p).sub(drag.anchor).multiplyScalar(1/Math.max(t - drag.lastT, 1e-3));
+      drag.anchor.copy(p);
+      drag.lastT = t;
+    }
+  }
+});
+addEventListener('pointerdown', (e)=>{
+  if (e.target.closest('.card')) return;
+  const hit = rayHitBear(e);
+  if (!hit) return;
+  const b = hit.bear;
+  const camDir = new THREE.Vector3();
+  camera.getWorldDirection(camDir);
+  const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, hit.point);
+  const cc = b.colliderCenter(new THREE.Vector3());
+  const particles = new Map();
+  const sorted = b.soft.pos.map((p,i)=>[p.distanceTo(hit.point), i]).sort((x,y)=>x[0]-y[0]);
+  for (let k = 0; k < 3; k++){
+    const i = sorted[k][1];
+    particles.set(i, b.soft.pos[i].clone().sub(hit.point));
+  }
+  drag = {
+    bear:b, particles, plane,
+    anchor: hit.point.clone(),
+    grabOffset: cc.sub(hit.point),
+    lastT: performance.now()/1000,
+    velTrack: new THREE.Vector3(),
+  };
+  cursorEl.classList.add('grab');
+  b.nextHop = simTime + 999;
+});
+addEventListener('pointerup', ()=>{
+  if (!drag) return;
+  const b = drag.bear;
+  const fling = drag.velTrack.clone();
+  if (fling.length() > 12) fling.setLength(12);
+  b.vel.addScaledVector(fling, 0.85);
+  b.ang.add(new THREE.Vector3((Math.random()-0.5)*4, 0, (Math.random()-0.5)*4));
+  for (const [i] of drag.particles) b.soft.vel[i].addScaledVector(fling, 0.5);
+  b.nextHop = simTime + 2 + Math.random()*3;
+  drag = null;
+  cursorEl.classList.remove('grab');
+});
+addEventListener('dblclick', (e)=>{
+  const hit = rayHitBear(e);
+  if (!hit) return;
+  const b = hit.bear;
+  const dir = hit.point.clone().sub(b.colliderCenter(new THREE.Vector3())).normalize();
+  b.vel.addScaledVector(dir, 2.2);
+  b.vel.y += 2.6;
+  b.ang.add(new THREE.Vector3((Math.random()-0.5)*8, (Math.random()-0.5)*4, (Math.random()-0.5)*8));
+});
+
+/* ============================================================
+   UI
+============================================================ */
+const stretchEl = document.getElementById('stretchVal');
+const bounceEl = document.getElementById('bounceVal');
+const wobbleEl = document.getElementById('wobble');
+const wobbleValEl = document.getElementById('wobbleVal');
+const flavorName = document.getElementById('flavorName');
+
+function wobbleFromSlider(){
+  const t = wobbleEl.value/100;
+  wobbleK = 22 * Math.pow(4.2, t);
+  wobbleValEl.textContent = t < 0.33 ? 'firm' : (t < 0.7 ? 'jelly' : 'extra jelly');
+}
+wobbleEl.addEventListener('input', wobbleFromSlider);
+wobbleFromSlider();
+
+document.getElementById('pour').addEventListener('click', ()=> pour(6));
+document.querySelectorAll('.sw').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    const f = +el.dataset.f;
+    flavorName.textContent = FLAVORS[f].name;
+    const b = spawnBear(f, (Math.random()-0.5)*1.2, 2.4, 0.25 + (Math.random()-0.5)*0.8);
+    if (b) b.vel.set((Math.random()-0.5), 0, (Math.random()-0.5));
+  });
+  el.addEventListener('mouseenter', ()=> flavorName.textContent = FLAVORS[+el.dataset.f].name);
+});
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ============================================================
+   Main loop
+============================================================ */
+let last = performance.now(), acc = 0, fps = 60, frameCount = 0;
+const H = 1/240;
+
+function stepWorld(h){
+  simTime += h;
+  for (const b of bears){
+    b.step(h, wobbleK, drag, simTime);
+    b.solveGround(onBounce);
+  }
+  solveBearPairs();
+}
+
+function frame(now){
+  requestAnimationFrame(frame);
+  let dt = (now - last)/1000; last = now;
+  fps = fps*0.95 + (1/Math.max(dt, 1e-4))*0.05;
+  dt = Math.min(dt, 0.05);
+  acc += dt;
+  let n = 0;
+  while (acc >= H && n < 8){ stepWorld(H); acc -= H; n++; }
+  if (n === 8) acc = 0;
+
+  const nx = (mouseX/innerWidth)*2 - 1, ny = (mouseY/innerHeight)*2 - 1;
+  camera.position.x += (nx*0.45 - camera.position.x)*0.04;
+  camera.position.y += ((2.35 - ny*0.22) - camera.position.y)*0.04;
+  camera.lookAt(0, 0.52, 0);
+
+  let stretch = 1;
+  for (const b of bears){
+    b.updateVisuals();
+    stretch = Math.max(stretch, b.soft.stretchMetric());
+  }
+  stretchEl.innerHTML = stretch.toFixed(2) + '<small>×</small>';
+  bounceEl.textContent = bounceCount;
+
+  // adaptive resolution: keep it at 60fps
+  if ((frameCount++ & 127) === 0 && fps < 45 && dpr > 1.0){
+    dpr = Math.max(1.0, dpr - 0.2);
+    renderer.setPixelRatio(dpr);
+  }
+
+  renderer.render(scene, camera);
+}
+
+pour(5, 'rainbow');
+requestAnimationFrame(frame);
+window.__step = (s)=>{ const n = Math.round(s/H); for (let i = 0; i < n; i++) stepWorld(H); };
+
+/* test hooks */
+window.__stats = ()=>({ bears: bears.length, fps: Math.round(fps), bounces: bounceCount, sim: +simTime.toFixed(2) });
+window.__bearDebug = ()=> bears.map(b=>({
+  y:+b.pos.y.toFixed(3), vy:+b.vel.y.toFixed(3), v:+b.vel.length().toFixed(3),
+  w:+b.ang.length().toFixed(3), g:b.grounded?1:0,
+  sag:+(b.soft.pos[IDX.footL].y).toFixed(3),
+}));
+window.__bearScreen = (i)=>{
+  const b = bears[i]; if (!b) return null;
+  const v = b.colliderCenter(new THREE.Vector3()).project(camera);
+  return { x:(v.x*0.5+0.5)*innerWidth, y:(-v.y*0.5+0.5)*innerHeight };
+};
+</script>
+</body>
+</html>

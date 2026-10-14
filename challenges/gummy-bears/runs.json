@@ -80,6 +80,22 @@
     "cost_usd": 0.84
   },
   {
+    "slug": "kimi-k3",
+    "model": "Kimi K3",
+    "provider": "OpenCode Go",
+    "harness": "pi 1.2.0",
+    "effort": "max",
+    "duration": "1h 11m 23s",
+    "tokens_in": 281832,
+    "tokens_out": 131081,
+    "cost_usd": 4.99,
+    "turns": 74,
+    "nudges": 2,
+    "entry": "index.html",
+    "status": "done",
+    "notes": "Hit the OpenCode Go usage limit mid-run; the 3h 42m wait is excluded from the time (4h 53m wall clock). Seam lines can appear at extreme stretch; the pineapple/clear bear reads nearly opaque; 60fps not verified on a real GPU."
+  },
+  {
     "slug": "opus-5-5",
     "model": "Opus 5.5",
     "provider": "Anthropic",

@@ -21,6 +21,9 @@ const fetchJson = async (url) => {
 };
 
 const challengeDir = (slug) => `/challenges/${slug}`;
+// "dnf" = did not finish: the snapshot can still be opened.
+const isOpenable = (run) => run.status === "done" || run.status === "dnf";
+const STATUS_LABEL = { done: "Done", dnf: "Did not finish", pending: "In progress" };
 const runUrl = (challenge, run) => `${challengeDir(challenge)}/runs/${run.slug}/${run.entry}`;
 const viewerUrl = (challenge, run) =>
   `/view.html?c=${encodeURIComponent(challenge)}&r=${encodeURIComponent(run.slug)}`;
@@ -34,7 +37,7 @@ async function renderHome(root) {
   const cards = await Promise.all(
     challenges.map(async (c) => {
       const runs = await fetchJson(`${challengeDir(c.slug)}/runs.json`).catch(() => []);
-      const done = runs.filter((r) => r.status === "done").length;
+      const done = runs.filter(isOpenable).length;
       const pending = runs.length - done;
       return el("a", { class: "card", href: `${challengeDir(c.slug)}/` }, [
         el("h2", { class: "card-title" }, c.title),
@@ -58,7 +61,7 @@ const formatTokens = (run) =>
     : null;
 
 function runCard(challenge, run) {
-  const isDone = run.status === "done";
+  const canOpen = isOpenable(run);
   const rows = [
     ["Harness", run.harness],
     ["Provider", run.provider],
@@ -75,15 +78,13 @@ function runCard(challenge, run) {
     el("dl", { class: "meta" }, rows.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
     run.notes ? el("p", { class: "card-text" }, run.notes) : null,
     el("div", { class: "card-footer" }, [
-      isDone
-        ? el("span", { class: "card-text" }, "Done")
-        : el("span", { class: "status-pending" }, "In progress"),
-      isDone ? el("span", { class: "cta" }, "Open →") : null,
+      el("span", { class: `status status-${run.status}` }, STATUS_LABEL[run.status] || run.status),
+      canOpen ? el("span", { class: "cta" }, "Open →") : null,
     ]),
   ];
 
-  return isDone
-    ? el("a", { class: "card", href: viewerUrl(challenge, run) }, children)
+  return canOpen
+    ? el("a", { class: `card is-${run.status}`, href: viewerUrl(challenge, run) }, children)
     : el("div", { class: "card is-pending" }, children);
 }
 
@@ -121,7 +122,7 @@ async function renderViewer() {
 
   back.href = challenge ? `${challengeDir(challenge)}/` : "/";
   const runs = await fetchJson(`${challengeDir(challenge)}/runs.json`);
-  const run = runs.find((r) => r.slug === runSlug && r.status === "done");
+  const run = runs.find((r) => r.slug === runSlug && isOpenable(r));
   if (!run) {
     title.textContent = "Run not found";
     return;

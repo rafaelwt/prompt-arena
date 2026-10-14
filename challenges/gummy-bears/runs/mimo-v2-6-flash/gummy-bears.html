@@ -190,14 +190,14 @@ const MAX_BEARNS = 14;
 
 const NODE_DEF = [
   // name      x      y      z     visRadius  mass
-  ['body',   0.00,  0.30, -0.02,   0.300,   1.50],
-  ['belly',  0.00,  0.00,  0.03,   0.318,   1.50],
-  ['head',   0.00,  0.68,  0.00,   0.275,   1.00],
-  ['snout',  0.00,  0.63,  0.21,   0.150,   0.30],
-  ['earL',  -0.19,  0.90, -0.03,   0.120,   0.18],
-  ['earR',   0.19,  0.90, -0.03,   0.120,   0.18],
-  ['handL', -0.30,  0.26,  0.07,   0.140,   0.25],
-  ['handR',  0.30,  0.26,  0.07,   0.140,   0.25],
+  ['body',   0.00,  0.28, -0.02,   0.290,   1.40],
+  ['belly',  0.00, -0.01,  0.03,   0.325,   1.60],
+  ['head',   0.00,  0.72,  0.00,   0.265,   1.00],
+  ['snout',  0.00,  0.66,  0.22,   0.150,   0.30],
+  ['earL',  -0.17,  0.95, -0.02,   0.105,   0.16],
+  ['earR',   0.17,  0.95, -0.02,   0.105,   0.16],
+  ['handL', -0.30,  0.26,  0.10,   0.135,   0.26],
+  ['handR',  0.30,  0.26,  0.10,   0.135,   0.26],
   ['footL', -0.20, -0.36,  0.023,  0.175,   0.40],
   ['footR',  0.20, -0.36,  0.023,  0.175,   0.40],
 ];
@@ -206,19 +206,19 @@ const IX = {}; NODE_DEF.forEach((d,i)=>IX[d[0]] = i);
 
 const LINK_DEF = [
   // a,       b,       strand radius (visual),  max stretch,  rendered
-  ['head',  'body',   0.125, 3.0, true ],
-  ['head',  'earL',   0.085, 2.6, true ],
-  ['head',  'earR',   0.085, 2.6, true ],
-  ['head',  'snout',  0.130, 2.2, true ],
-  ['body',  'belly',  0.205, 2.2, true ],
-  ['body',  'handL',  0.100, 2.6, true ],
-  ['body',  'handR',  0.100, 2.6, true ],
-  ['belly', 'footL',  0.118, 2.6, true ],
-  ['belly', 'footR',  0.118, 2.6, true ],
-  ['head',  'belly',  0.0,   1.65,false],
-  ['earL',  'earR',   0.0,   1.6, false],
-  ['handL', 'handR',  0.0,   1.8, false],
-  ['footL', 'footR',  0.0,   1.7, false],
+  ['head',  'body',   0.100, 3.0, true ],
+  ['head',  'earL',   0.070, 2.2, true ],
+  ['head',  'earR',   0.070, 2.2, true ],
+  ['head',  'snout',  0.120, 2.2, true ],
+  ['body',  'belly',  0.200, 2.2, true ],
+  ['body',  'handL',  0.085, 1.9, true ],
+  ['body',  'handR',  0.085, 1.9, true ],
+  ['belly', 'footL',  0.105, 1.9, true ],
+  ['belly', 'footR',  0.105, 1.9, true ],
+  ['head',  'belly',  0.0,   1.70,false],
+  ['earL',  'earR',   0.0,   1.7, false],
+  ['handL', 'handR',  0.0,   1.7, false],
+  ['footL', 'footR',  0.0,   1.8, false],
   ['handL', 'belly',  0.0,   1.6, false],
   ['handR', 'belly',  0.0,   1.6, false],
 ];
@@ -247,7 +247,7 @@ const RADCOL= new Float64Array(N_NODE);     // collision radius
   for (let i=0;i<N_NODE;i++){
     const d = NODE_DEF[i];
     REST[i*3]   = d[1]-mx; REST[i*3+1] = d[2]-my; REST[i*3+2] = d[3]-mz;
-    RADV[i] = d[4]; MASS[i] = d[5]; RADCOL[i] = d[4]*0.86;
+    RADV[i] = d[4]; MASS[i] = d[5]; RADCOL[i] = d[4]*0.93;
   }
 }
 const TOTM = MASS.reduce((a,b)=>a+b, 0);
@@ -290,6 +290,7 @@ const BALL_BUF = new Float32Array(N_BALLS*4);   // x,y,z,r  (grid units)
    2. Renderer / scene / lights / studio environment
    ===================================================================================== */
 const QS = new URLSearchParams(location.search);
+const NOBLUR = QS.has('noblur');
 const DEBUG_PLAIN = QS.has('plain');
 
 const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
@@ -393,6 +394,7 @@ class SurfaceNet {
 
     this.cvals  = new Float32Array(NP);
     this.blurTmp = new Float32Array(NP);
+    this.vx = new Int16Array(maxV); this.vy = new Int16Array(maxV); this.vz = new Int16Array(maxV);
     this.lastBox = new Int32Array(6);
     this.box     = new Int32Array(6);
     this.nVerts = 0; this.nIdx = 0;
@@ -457,7 +459,7 @@ class SurfaceNet {
     }
 
     /* --- smooth: tiny balls alias badly against the grid ---------------------- */
-    {
+    if (!NOBLUR) {
       const tmp = this.blurTmp;
       const blurLine = (start, end, stride) => {
         const len = end-start;
@@ -534,6 +536,7 @@ class SurfaceNet {
           verts[vc*3]   = px*invc;
           verts[vc*3+1] = py*invc;
           verts[vc*3+2] = pz*invc;
+          this.vx[vc]=x; this.vy[vc]=y; this.vz[vc]=z;
           vc++;
         }
       }
@@ -564,51 +567,34 @@ class SurfaceNet {
       else         { index[ic++]=a; index[ic++]=c; index[ic++]=b; index[ic++]=a; index[ic++]=d; index[ic++]=c; }
     };
 
-    // x edges
-    for (let z=cz0+1; z<=cz1; z++){
-      const zo = z*NP*NP;
-      for (let y=cy0+1; y<=cy1; y++){
-        const yo = zo + y*NP;
-        for (let x=cx0; x<=cx1; x++){
-          const fa = field[yo+x], fb = field[yo+x+1];
-          const ina = fa >= ISO;
-          if (ina === (fb >= ISO)) continue;
+    // each grid edge is owned by the cell at its minimum corner -> iterate vertices, not the box
+    const vx=this.vx, vy=this.vy, vz=this.vz;
+    const PIN = (a,b,c) => (c*NP + b)*NP + a;
+    for (let vi=0; vi<vc; vi++){
+      const x=vx[vi], y=vy[vi], z=vz[vi];
+      const base = PIN(x,y,z);
+      if (y>0 && z>0){
+        const fa = field[base], fb = field[base+1];
+        if ((fa >= ISO) !== (fb >= ISO)){
           const a = cellVert(x, y-1, z-1), b = cellVert(x, y, z-1);
           const c = cellVert(x, y, z),     d = cellVert(x, y-1, z);
-          if (a<0||b<0||c<0||d<0) continue;
-          push(a,b,c,d);
+          if (a>=0&&b>=0&&c>=0&&d>=0) push(a,b,c,d);
         }
       }
-    }
-    // y edges
-    for (let z=cz0+1; z<=cz1; z++){
-      const zo = z*NP*NP;
-      for (let y=cy0; y<=cy1; y++){
-        const yo = zo + y*NP;
-        for (let x=cx0+1; x<=cx1; x++){
-          const fa = field[yo+x], fb = field[yo+x+NP];
-          const ina = fa >= ISO;
-          if (ina === (fb >= ISO)) continue;
+      if (x>0 && z>0){
+        const fa = field[base], fb = field[base+NP];
+        if ((fa >= ISO) !== (fb >= ISO)){
           const a = cellVert(x-1, y, z-1), b = cellVert(x-1, y, z);
           const c = cellVert(x,   y, z),   d = cellVert(x,   y, z-1);
-          if (a<0||b<0||c<0||d<0) continue;
-          push(a,b,c,d);
+          if (a>=0&&b>=0&&c>=0&&d>=0) push(a,b,c,d);
         }
       }
-    }
-    // z edges
-    for (let z=cz0; z<=cz1; z++){
-      const zo = z*NP*NP;
-      for (let y=cy0+1; y<=cy1; y++){
-        const yo = zo + y*NP;
-        for (let x=cx0+1; x<=cx1; x++){
-          const fa = field[yo+x], fb = field[yo+x+NP*NP];
-          const ina = fa >= ISO;
-          if (ina === (fb >= ISO)) continue;
+      if (x>0 && y>0){
+        const fa = field[base], fb = field[base+NP*NP];
+        if ((fa >= ISO) !== (fb >= ISO)){
           const a = cellVert(x-1, y-1, z), b = cellVert(x, y-1, z);
           const c = cellVert(x,   y,   z), d = cellVert(x-1, y, z);
-          if (a<0||b<0||c<0||d<0) continue;
-          push(a,b,c,d);
+          if (a>=0&&b>=0&&c>=0&&d>=0) push(a,b,c,d);
         }
       }
     }
@@ -770,7 +756,7 @@ class Bear {
     this.group = new THREE.Group();
     this.group.add(this.mesh);
 
-    const eyeOff = 0.118, eyeUp = 0.088, eyeFw = 0.196;
+    const eyeOff = 0.112, eyeUp = 0.085, eyeFw = 0.198;
     this.eyeL = new THREE.Mesh(EYE_GEO, EYE_MAT);
     this.eyeR = new THREE.Mesh(EYE_GEO, EYE_MAT);
     this.nose = new THREE.Mesh(EYE_GEO, EYE_MAT);
@@ -812,8 +798,14 @@ class Bear {
     this.firstFrame = true;
   }
 
+  respawn(){
+    const y = RADCOL[IX.footL] - REST_Y + 1.2;
+    this.spawn((Math.random()-0.5)*3, y, (Math.random()-0.5)*2, Math.random()*6.28);
+    for (let i=0;i<N_NODE;i++){ this.vel[i*3+1] = -1; }
+  }
+
   /* ---------- physics ---------- */
-  step(h, wob){
+  begin(h, wob){
     const pos=this.pos, vel=this.vel, p0=this.pprev, acc=this.acc;
     const n3 = N_NODE*3;
     for (let i=0;i<n3;i++) p0[i]=pos[i];
@@ -827,14 +819,6 @@ class Bear {
     for (let i=0;i<N_NODE;i++){
       const j=i*3;
       vel[j+1] += GRAV*h;
-      if (i === gi && gg){
-        vel[j]   += (gg.tx-pos[j])*140*h;
-        vel[j+1] += (gg.ty-pos[j+1])*140*h;
-        vel[j+2] += (gg.tz-pos[j+2])*140*h;
-        vel[j]   -= (vel[j]-gg.vx)*0.22;
-        vel[j+1] -= (vel[j+1]-gg.vy)*0.22;
-        vel[j+2] -= (vel[j+2]-gg.vz)*0.22;
-      }
       vel[j]*=damp; vel[j+1]*=damp; vel[j+2]*=damp;
       const sp2 = vel[j]*vel[j]+vel[j+1]*vel[j+1]+vel[j+2]*vel[j+2];
       if (sp2 > 676){ const k = 26/Math.sqrt(sp2); vel[j]*=k; vel[j+1]*=k; vel[j+2]*=k; }
@@ -863,7 +847,7 @@ class Bear {
     POLAR_TMP[6]=F20; POLAR_TMP[7]=F21; POLAR_TMP[8]=F22;
     const det = F00*(F11*F22-F12*F21) - F01*(F10*F22-F12*F20) + F02*(F10*F21-F11*F20);
     this.detF = det;
-    const s = Math.pow(Math.min(4.0, Math.max(0.18, det)), -1/3);   // volume preserving
+    const s = Math.pow(Math.min(2.6, Math.max(0.34, det)), -1/3);   // volume preserving
 
     const Rm = this.Rm;
     if (polarRot(POLAR_TMP, this.pol)){
@@ -875,12 +859,24 @@ class Bear {
     const r10=Rm[1], r11=Rm[4], r12=Rm[7];
     const r20=Rm[2], r21=Rm[5], r22=Rm[8];
 
+    const capC = 0.038;                                   // max correction per substep
     for (let i=0;i<N_NODE;i++){
       const j=i*3;
       const qx=REST[j], qy=REST[j+1], qz=REST[j+2];
-      pos[j]   += aS*(cx + s*(r00*qx+r01*qy+r02*qz) - pos[j]);
-      pos[j+1] += aS*(cy + s*(r10*qx+r11*qy+r12*qz) - pos[j+1]);
-      pos[j+2] += aS*(cz + s*(r20*qx+r21*qy+r22*qz) - pos[j+2]);
+      let ox = aS*(cx + s*(r00*qx+r01*qy+r02*qz) - pos[j]);
+      let oy = aS*(cy + s*(r10*qx+r11*qy+r12*qz) - pos[j+1]);
+      let oz = aS*(cz + s*(r20*qx+r21*qy+r22*qz) - pos[j+2]);
+      const ol = Math.sqrt(ox*ox+oy*oy+oz*oz);
+      if (ol > capC){ const k = capC/ol; ox*=k; oy*=k; oz*=k; }
+      pos[j]+=ox; pos[j+1]+=oy; pos[j+2]+=oz;
+    }
+
+    // grabbed point: stiff position constraint (the bear stretches around it)
+    if (gi >= 0 && gg){
+      const j=gi*3;
+      pos[j]   += 0.62*(gg.tx - pos[j]);
+      pos[j+1] += 0.62*(gg.ty - pos[j+1]);
+      pos[j+2] += 0.62*(gg.tz - pos[j+2]);
     }
 
     /* --- 3. links: rubber bands between the mass points --------------------- */
@@ -916,8 +912,16 @@ class Bear {
         if (pos[j+1] < RADCOL[i]) pos[j+1] = RADCOL[i];
       }
     }
+  }
 
+  end(h){
+    /* --- guard: never let one bad node poison the whole table ---------------- */
+    if (!(this.pos[0] === this.pos[0]) || !Number.isFinite(this.pos[3*N_NODE-1])){
+      this.respawn(); return;
+    }
     /* --- 4. velocity update from the final positions ------------------------ */
+    const pos=this.pos, vel=this.vel, p0=this.pprev, Rm=this.Rm, gi=this.grabNode;
+    const det = this.detF;
     const invh = 1/h;
     let cx2=0, cy2=0, cz2=0, contacts=0;
     for (let i=0;i<N_NODE;i++){
@@ -932,13 +936,28 @@ class Bear {
         if (vel[j+1] < 0){
           const impact = -vel[j+1];
           if (impact > 2.6 && this.bounceCd <= 0){ this.bounceEvents++; this.bounceCd = 0.30; }
-          vel[j+1] = impact > 1.4 ? impact*0.42 : 0;
+          vel[j+1] = impact > 1.5 ? impact*0.36 : 0;
           vel[j]   *= 0.86;
           vel[j+2] *= 0.86;
         }
       }
     }
     if (this.bounceCd > 0) this.bounceCd -= h;
+    // viscoelastic: a deformed bear damps its own internal motion (jelly, not rubber band)
+    {
+      let d0 = Math.abs(det - 1); if (d0 > 1) d0 = 1;
+      const kd = 0.45 + 3.2*d0;
+      const f = Math.max(0, 1 - kd*h);
+      let mvx=0, mvy=0, mvz=0;
+      for (let i=0;i<N_NODE;i++){ const j=i*3, m=MASS[i]; mvx+=vel[j]*m; mvy+=vel[j+1]*m; mvz+=vel[j+2]*m; }
+      mvx/=TOTM; mvy/=TOTM; mvz/=TOTM;
+      for (let i=0;i<N_NODE;i++){
+        const j=i*3;
+        vel[j]   = mvx + (vel[j]-mvx)*f;
+        vel[j+1] = mvy + (vel[j+1]-mvy)*f;
+        vel[j+2] = mvz + (vel[j+2]-mvz)*f;
+      }
+    }
     const ccx=cx2/N_NODE, ccy=cy2/N_NODE, ccz=cz2/N_NODE;
     this.c[0]=ccx; this.c[1]=ccy; this.c[2]=ccz;
 
@@ -947,9 +966,10 @@ class Bear {
       const ux=Rm[3], uy=Rm[4], uz=Rm[5];          // bear's up axis, world space
       const ax0=-uz, az0=ux;                        // u x up
       const sinT = Math.sqrt(ax0*ax0+az0*az0);
-      if (sinT > 1e-3 && uy > 0.30){
+      if (sinT > 1e-3 && uy > 0.02){
         const th = Math.atan2(sinT, uy);
-        const w  = th*10;
+        let w  = th*85*h;                     // self-levelling: candy always lands feet-down
+        if (w > 0.030) w = 0.030;
         const wx = ax0/sinT*w, wz = az0/sinT*w;
         for (let i=0;i<N_NODE;i++){
           const j=i*3;
@@ -962,11 +982,12 @@ class Bear {
     }
 
     /* --- 5. table boundary + idle hops -------------------------------------- */
+    // soft boundary: the table is a stage, bears drift back toward the middle
     const rx = pos[IX.body*3], rz = pos[IX.body*3+2];
     const rr = Math.hypot(rx, rz);
-    if (rr > 11){
-      const k = (rr-11)/rr*0.4;
-      for (let i=0;i<N_NODE;i++){ vel[i*3] -= rx*k; vel[i*3+2] -= rz*k; }
+    if (rr > 4.0){
+      const k = Math.min(7, (rr-4.0))*1.1*h;
+      for (let i=0;i<N_NODE;i++){ vel[i*3] -= rx/rr*k; vel[i*3+2] -= rz/rr*k; }
     }
 
     this.idle -= h;
@@ -1031,9 +1052,9 @@ class Bear {
     }
 
     // adaptive grid extent (smoothed)
-    const Gt = Math.min(3.2, Math.max(0.85, maxAbs*1.14));
+    const Gt = Math.min(3.4, Math.max(0.85, maxAbs*1.14));
     if (this.firstFrame) this.G = Gt;
-    this.G += (Gt - this.G)*0.3;
+    this.G += (Gt - this.G)*(Gt > this.G ? 0.55 : 0.16);
     const G = this.G;
 
     // eyes / nose ride the local frame
@@ -1057,14 +1078,18 @@ class Bear {
     /* --- balls (grid units) --------------------------------------------------- */
     const res = this.res, half = res/2, B = BALL_BUF;
     const invG = half / G;
+    const minR = 1.7;                     // grid units: never thinner than ~2 cells
+    const put = (n, lx, ly, lz, r) => {
+      let gx = (lx/G + 1)*half, gy = (ly/G + 1)*half, gz = (lz/G + 1)*half;
+      if (gx < 1.5) gx = 1.5; else if (gx > res-2.5) gx = res-2.5;
+      if (gy < 1.5) gy = 1.5; else if (gy > res-2.5) gy = res-2.5;
+      if (gz < 1.5) gz = 1.5; else if (gz > res-2.5) gz = res-2.5;
+      B[n*4]=gx; B[n*4+1]=gy; B[n*4+2]=gz; B[n*4+3]= r < minR ? minR : r;
+    };
     let n = 0;
     for (let i=0;i<N_NODE;i++){
       const j=i*3;
-      const rf = RADV[i]*this.bulge[i]*VIS_FACTOR*invG;
-      B[n*4]   = (loc[j]/G + 1)*half;
-      B[n*4+1] = (loc[j+1]/G + 1)*half;
-      B[n*4+2] = (loc[j+2]/G + 1)*half;
-      B[n*4+3] = rf;
+      put(n, loc[j], loc[j+1], loc[j+2], RADV[i]*this.bulge[i]*VIS_FACTOR*invG);
       n++;
     }
     for (let li=0; li<LINKS.length; li++){
@@ -1073,17 +1098,17 @@ class Bear {
       const ia=L.a*3, ib=L.b*3;
       const dx=pos[ib]-pos[ia], dy=pos[ib+1]-pos[ia+1], dz=pos[ib+2]-pos[ia+2];
       const d = Math.sqrt(dx*dx+dy*dy+dz*dz) || 1e-6;
-      let s = Math.sqrt(L.L0/d); if (s<0.30) s=0.30; else if (s>1.25) s=1.25;
-      const r = L.r*s*VIS_FACTOR*invG;
+      // strands only appear as a link is pulled out (at rest the blobs already melt together)
+      const ratio = d/L.L0;
+      const grow = Math.min(1, Math.max(0, (ratio-1.04)/0.22));
+      if (grow <= 0.001) continue;
+      let s = Math.sqrt(1/ratio); if (s<0.28) s=0.28;
+      const r = L.r*s*grow*VIS_FACTOR*invG;
       for (let k=0;k<N_STRAND;k++){
         const t = (k+1)/(N_STRAND+1);
-        // strand ball in world -> bear frame
         const wx = pos[ia]+dx*t, wy = pos[ia+1]+dy*t, wz = pos[ia+2]+dz*t;
         const ex = wx-c[0], ey = wy-c[1], ez = wz-c[2];
-        B[n*4]   = ((R[0]*ex + R[1]*ey + R[2]*ez)/G + 1)*half;
-        B[n*4+1] = ((R[3]*ex + R[4]*ey + R[5]*ez)/G + 1)*half;
-        B[n*4+2] = ((R[6]*ex + R[7]*ey + R[8]*ez)/G + 1)*half;
-        B[n*4+3] = r;
+        put(n, R[0]*ex + R[1]*ey + R[2]*ez, R[3]*ex + R[4]*ey + R[5]*ez, R[6]*ex + R[7]*ey + R[8]*ez, r);
         n++;
       }
     }
@@ -1118,9 +1143,9 @@ function pour(count){
   const n = count || 4;
   for (let i=0;i<n;i++){
     const f = Math.random() < 0.35 ? selectedFlavor : Math.floor(Math.random()*FLAVORS.length);
-    const x = (Math.random()-0.5)*3.4;
-    const z = (Math.random()-0.5)*2.4;
-    const b = spawnBear(f, x, 3.4 + i*1.15 + Math.random()*0.4, z, Math.random()*Math.PI*2);
+    const x = (Math.random()-0.5)*2.4;
+    const z = (Math.random()-0.5)*1.7;
+    const b = spawnBear(f, x, 2.5 + i*0.85 + Math.random()*0.3, z, Math.random()*Math.PI*2);
     for (let k=0;k<N_NODE;k++){ b.vel[k*3+1] = -1.2; b.vel[k*3] += (Math.random()-0.5)*1.2; b.vel[k*3+2] += (Math.random()-0.5)*1.2; }
     b.firstFrame = true;
   }
@@ -1129,47 +1154,38 @@ function pour(count){
 let batchNo = 1;
 
 function stepWorld(h, wob){
-  for (let i=0;i<bears.length;i++){ bears[i].age += h; bears[i].step(h, wob); }
+  for (let i=0;i<bears.length;i++){ const b=bears[i]; b.age += h; b.begin(h, wob); }
 
-  // bear <-> bear (node spheres, never tunnel)
+  // bear <-> bear (node spheres, never tunnel) - relaxation passes between predict and velocity update
+  for (let it=0; it<2; it++)
   for (let i=0;i<bears.length;i++){
     const A = bears[i];
     for (let j=i+1;j<bears.length;j++){
       const B = bears[j];
       if (A.age < 0.35 || B.age < 0.35) continue;   // freshly poured: no overlap blast
-      // cheap broadphase on centroids
       const dx=A.c[0]-B.c[0], dy=A.c[1]-B.c[1], dz=A.c[2]-B.c[2];
       if (dx*dx+dy*dy+dz*dz > 12.25) continue;
       for (let a=0;a<N_NODE;a++){
-        const ja=a*3, ra=RADCOL[a]*0.92, ax=A.pos[ja], ay=A.pos[ja+1], az=A.pos[ja+2];
+        const ja=a*3, ra=RADCOL[a], ax=A.pos[ja], ay=A.pos[ja+1], az=A.pos[ja+2];
         for (let b2=0;b2<N_NODE;b2++){
-          const jb=b2*3, rb=RADCOL[b2]*0.92;
+          const jb=b2*3, rb=RADCOL[b2];
           const ex=ax-B.pos[jb], ey=ay-B.pos[jb+1], ez=az-B.pos[jb+2];
           const rr = ra+rb;
           const d2 = ex*ex+ey*ey+ez*ez;
           if (d2 >= rr*rr || d2 < 1e-9) continue;
           const d = Math.sqrt(d2);
           const nx=ex/d, ny=ey/d, nz=ez/d;
-          const pen = Math.min(rr-d, rr*0.45);
+          const pen = Math.min(rr-d, rr*0.5);
           const wa = 1/MASS[a], wb = 1/MASS[b2], ws = wa+wb;
-          const ca = pen*(wa/ws)*0.85, cb = pen*(wb/ws)*0.85;
+          const ca = pen*(wa/ws)*0.62, cb = pen*(wb/ws)*0.62;
           A.pos[ja]  += nx*ca; A.pos[ja+1] += ny*ca; A.pos[ja+2] += nz*ca;
           B.pos[jb]  -= nx*cb; B.pos[jb+1] -= ny*cb; B.pos[jb+2] -= nz*cb;
-          const rvx=B.vel[jb]-A.vel[ja], rvy=B.vel[jb+1]-A.vel[ja+1], rvz=B.vel[jb+2]-A.vel[ja+2];
-          const vn = rvx*nx+rvy*ny+rvz*nz;
-          if (vn < 0){
-            const jj = -(1+0.28)*vn/ws;
-            A.vel[ja]   -= nx*jj*wa; A.vel[ja+1] -= ny*jj*wa; A.vel[ja+2] -= nz*jj*wa;
-            B.vel[jb]   += nx*jj*wb; B.vel[jb+1] += ny*jj*wb; B.vel[jb+2] += nz*jj*wb;
-            // tangential friction
-            const tvx = rvx - vn*nx, tvy = rvy - vn*ny, tvz = rvz - vn*nz;
-            A.vel[ja]   += tvx*0.05*wa/ws; A.vel[ja+1] += tvy*0.05*wa/ws; A.vel[ja+2] += tvz*0.05*wa/ws;
-            B.vel[jb]   -= tvx*0.05*wb/ws; B.vel[jb+1] -= tvy*0.05*wb/ws; B.vel[jb+2] -= tvz*0.05*wb/ws;
-          }
         }
       }
     }
   }
+
+  for (let i=0;i<bears.length;i++) bears[i].end(h);
 }
 
 function updateScene(){
@@ -1186,11 +1202,12 @@ function updateScene(){
       if (r>maxRad) maxRad = r;
     }
     const height = Math.max(0, minY - 0.12);
-    const grow = 1 + height*0.30;
+    const grow = 1 + Math.min(0.55, height*0.22);
+    const size = Math.min(1.05, maxRad)*1.5*grow;
     b.shadow.position.x = c[0];
     b.shadow.position.z = c[2];
-    b.shadow.scale.set(maxRad*1.65*grow, maxRad*1.65*grow, 1);
-    b.shadowMat.opacity = Math.max(0.10, 0.52 - height*0.14);
+    b.shadow.scale.set(size, size, 1);
+    b.shadowMat.opacity = Math.max(0.08, 0.5 - Math.min(0.42, height*0.13));
   }
 }
 
@@ -1249,6 +1266,9 @@ addEventListener('pointerdown', (e) => {
   grab.tz = hit.bear.pos[hit.node*3+2];
   grab.vx = grab.vy = grab.vz = 0;
   grab.bear.grab = grab;
+  grab.dx0 = hit.bear.pos[hit.node*3]   - hit.point.x;
+  grab.dy0 = hit.bear.pos[hit.node*3+1] - hit.point.y;
+  grab.dz0 = hit.bear.pos[hit.node*3+2] - hit.point.z;
   grab.last = new THREE.Vector3(grab.tx, grab.ty, grab.tz);
   grab.lastT = performance.now();
   pointerVel.set(0,0,0);
@@ -1265,7 +1285,10 @@ addEventListener('pointermove', (e) => {
   if (ray.ray.intersectPlane(dragPlane, hitV)){
     const now = performance.now();
     const dt = Math.max(1/240, (now - grab.lastT)/1000);
-    const nx = hitV.x + grab.dx0, ny = hitV.y + grab.dy0, nz = hitV.z + grab.dz0;
+    const nx = hitV.x + grab.dx0;
+    let ny = hitV.y + grab.dy0;
+    const nz = hitV.z + grab.dz0;
+    if (ny < 0.10) ny = 0.10;
     pointerVel.set((nx-grab.tx)/dt, (ny-grab.ty)/dt, (nz-grab.tz)/dt);
     if (pointerVel.length() > 26) pointerVel.setLength(26);
     grab.tx = nx; grab.ty = ny; grab.tz = nz;
@@ -1278,9 +1301,11 @@ function releaseGrab(){
   const b = grab.bear, i = grab.node;
   b.grabNode = -1; b.grab = null;
   // fling
-  b.vel[i*3]   = pointerVel.x*0.85;
-  b.vel[i*3+1] = pointerVel.y*0.85;
-  b.vel[i*3+2] = pointerVel.z*0.85;
+  const pv = pointerVel.clone();
+  if (pv.length() > 14) pv.setLength(14);
+  b.vel[i*3]   = pv.x*0.8;
+  b.vel[i*3+1] = pv.y*0.8;
+  b.vel[i*3+2] = pv.z*0.8;
   // pancake -> launch
   const det = b.detF;
   if (det < 0.94){
@@ -1288,8 +1313,8 @@ function releaseGrab(){
     for (let k=0;k<N_NODE;k++){
       const j=k*3;
       b.vel[j+1] += boost*(1 + 0.45*REST[j+1]);
-      b.vel[j]   += (Math.random()-0.5)*boost*0.25;
-      b.vel[j+2] += (Math.random()-0.5)*boost*0.25;
+      b.vel[j]   *= 0.72;
+      b.vel[j+2] *= 0.72;
     }
   }
   b.firstFrame = false;
@@ -1300,15 +1325,6 @@ addEventListener('pointerup', releaseGrab);
 addEventListener('pointercancel', releaseGrab);
 addEventListener('blur', releaseGrab);
 
-// grab offset bookkeeping on press
-addEventListener('pointerdown', (e) => {
-  if (!grab) return;
-  const b = grab.bear;
-  grab.dx0 = b.pos[grab.node*3]   - grab.point.x;
-  grab.dy0 = b.pos[grab.node*3+1] - grab.point.y;
-  grab.dz0 = b.pos[grab.node*3+2] - grab.point.z;
-}, true);
-
 /* cursor */
 let overUI = false;
 document.getElementById('panel').addEventListener('pointerenter', ()=>{ overUI=true; cursorEl.classList.add('ui'); });
@@ -1318,6 +1334,7 @@ document.getElementById('panel').addEventListener('pointerleave', ()=>{ overUI=f
    8. UI
    ===================================================================================== */
 let wobbleVal = 0.55;
+const wobbleParams = () => ({ aS: 0.005 + 0.020*wobbleVal, aL: 0.004 + 0.012*wobbleVal });
 const wobEl = document.getElementById('wobble');
 const wobOut = document.getElementById('wobbleOut');
 wobEl.addEventListener('input', ()=>{ wobbleVal = wobEl.value/100; wobOut.textContent = wobEl.value; });
@@ -1355,7 +1372,7 @@ const FIXED_MS = FIXED*1000;
 const ONE = QS.has('one'), CALM = QS.has('calm');
 if (CALM) for (const b of []) b.idle = 1e9;
 (function initBears(){
-  if (ONE){ const b = spawnBear(Number(QS.get('one')||0), 0, RADCOL[IX.footL]-REST_Y, 0, 0);
+  if (ONE){ const b = spawnBear(Number(QS.get('one')||0), 0, RADCOL[IX.footL]-REST_Y, 0, (QS.get('yaw')||0)*Math.PI/180);
     if (QS.has('res')){ b.res = +QS.get('res'); b.net = new SurfaceNet(b.res); b.mesh.geometry = b.net.geometry; } b.firstFrame = true; b.idle = 1e9; return; }
   const restY = RADCOL[IX.footL] - REST_Y;
   for (let i=0;i<5;i++){
@@ -1370,8 +1387,12 @@ let last = performance.now();
 let acc = 0;
 let fpsAcc = 0, fpsN = 0;
 window.__stats = { fps:0, bears:0, ms:0 };
-window.__trace = (steps, every) => { const wob={ aS:0.006+0.030*wobbleVal, aL:0.030+0.070*wobbleVal }; const out=[]; for(let i=1;i<=steps;i++){ stepWorld(FIXED,wob); if(i%every===0) out.push({i, ...window.__debug()[0]}); } return out; };
-window.__sim = (steps) => { const wob = { aS: 0.006 + 0.030*wobbleVal, aL: 0.030 + 0.070*wobbleVal }; for (let i=0;i<steps;i++) stepWorld(FIXED, wob); return window.__debug(); };
+window.__grabInfo = () => grab ? { bear:grab.bear.id, node:grab.node, t:[+grab.tx.toFixed(2),+grab.ty.toFixed(2),+grab.tz.toFixed(2)] } : null;
+window.__nodeScreen = (bi, ni) => { const bb=bears[bi]; if(!bb) return null;
+  const v = new THREE.Vector3(bb.pos[ni*3], bb.pos[ni*3+1], bb.pos[ni*3+2]).project(camera);
+  return [ (v.x*0.5+0.5)*innerWidth, (-v.y*0.5+0.5)*innerHeight, bb.pos[ni*3+1] ]; };
+window.__trace = (steps, every) => { const wob = wobbleParams(); const out=[]; for(let i=1;i<=steps;i++){ stepWorld(FIXED,wob); if(i%every===0) out.push({i, ...window.__debug()[0]}); } return out; };
+window.__sim = (steps) => { const wob = wobbleParams(); for (let i=0;i<steps;i++) stepWorld(FIXED, wob); return window.__debug(); };
 window.__debug = () => bears.map(b => ({
   id:b.id, f:FLAVORS[b.fi].name,
   c:[+b.c[0].toFixed(2),+b.c[1].toFixed(2),+b.c[2].toFixed(2)],
@@ -1388,7 +1409,7 @@ function frame(now){
   let dt = (now - last)/1000; last = now;
   if (dt > 0.05) dt = 0.05;
 
-  const wob = { aS: 0.006 + 0.030*wobbleVal, aL: 0.030 + 0.070*wobbleVal };
+  const wob = wobbleParams();
 
   acc += dt;
   let steps = 0;

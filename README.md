@@ -60,7 +60,7 @@ Then open http://localhost:8000.
 }
 ```
 
-`status` is `done` or `pending`. Pending runs show as "In progress" and cannot be opened. `tokens_in`, `tokens_out`, `cost_usd`, `turns`, `nudges` and `notes` are optional.
+`status` is `done`, `dnf` or `pending`. `dnf` (did not finish) runs can be opened, so a snapshot of an agent that never finished stays viewable; copy its file instead of moving it while the agent is still running. Pending runs show as "In progress" and cannot be opened. `tokens_in`, `tokens_out`, `cost_usd`, `turns`, `nudges` and `notes` are optional.
 
 - `tokens_in`: fresh input tokens, excluding cache reads.
 - `cost_usd`: API-equivalent cost of the run. pi logs it per message; for Claude Code, compute it from the logged usage and the API price list (Claude Code writes cache with the 1-hour TTL).

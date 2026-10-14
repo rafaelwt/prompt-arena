@@ -64,13 +64,19 @@
     "cost_usd": 4.78
   },
   {
-    "slug": "mimo",
-    "model": "MiMo",
-    "provider": null,
-    "harness": null,
+    "slug": "mimo-v2-6-flash",
+    "model": "MiMo v2.6 Flash",
+    "provider": "OpenCode Go",
+    "harness": "pi 1.2.0",
     "effort": "high",
-    "duration": null,
+    "duration": "3h 00m 51s",
+    "tokens_in": 6836812,
+    "tokens_out": 256740,
+    "cost_usd": 1.1,
+    "turns": 151,
+    "nudges": 0,
     "entry": "gummy-bears.html",
-    "status": "pending"
+    "status": "dnf",
+    "notes": "Never finished: stopped after 3 hours with no end in sight. Refraction never visually verified; debug hooks and query flags left in the file; camera, pineapple contrast and pour heights untuned."
   }
 ]

@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gummy Bears</title>
+<link rel="icon" href="data:," />
+<style>
+  :root {
+    --ink: #141414;
+    --muted: #7a7a7a;
+    --line: #e6e6e6;
+    --serif: "Playfair Display", "Cormorant Garamond", "Didot", "Bodoni MT", Georgia, "Times New Roman", serif;
+    --sans: "Inter", "Helvetica Neue", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #ffffff; color: var(--ink); font-family: var(--sans); overflow: hidden; }
+  body { cursor: none; }
+  canvas { display: block; position: fixed; inset: 0; }
+
+  .ui { position: fixed; inset: 0; pointer-events: none; }
+
+  header { position: absolute; left: clamp(24px, 4vw, 64px); top: clamp(20px, 3.5vw, 52px); max-width: 48vw; }
+  h1 {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(60px, 9vw, 132px);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+  }
+  h1 .line { display: block; }
+  .subtitle {
+    margin: 22px 0 0 4px;
+    max-width: 34ch;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  .subtitle b { color: var(--ink); font-weight: 500; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 18px 4px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1px; background: var(--ink); }
+
+  .card {
+    position: absolute;
+    right: clamp(20px, 3.5vw, 56px);
+    top: clamp(20px, 3.5vw, 52px);
+    width: 268px;
+    padding: 22px 22px 20px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    pointer-events: auto;
+  }
+  .card h2 { margin: 0 0 4px; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 22px; letter-spacing: -0.01em; }
+  .card .sku { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+  .label { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 14px 0 10px; }
+  .label span:last-child { letter-spacing: 0; text-transform: none; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  .swatches { display: flex; gap: 10px; }
+  .swatch {
+    width: 36px; height: 36px; border-radius: 50%; border: 0; padding: 0;
+    cursor: none; position: relative;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.85) 0 8%, rgba(255,255,255,0) 40%), var(--c);
+    box-shadow: inset 0 -6px 10px rgba(0,0,0,0.12), 0 6px 14px -6px var(--c);
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1);
+  }
+  .swatch:hover { transform: translateY(-3px) scale(1.06); }
+  .swatch:active { transform: scale(0.92); }
+  .swatch::after {
+    content: attr(data-name);
+    position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%);
+    font-size: 10px; color: var(--muted); white-space: nowrap; opacity: 0; transition: opacity .15s;
+  }
+  .swatch:hover::after { opacity: 1; }
+  .swatches { padding-bottom: 14px; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; margin: 0; cursor: none; }
+  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: #cfcfcf; }
+  input[type=range]::-moz-range-track { height: 1px; background: #cfcfcf; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 1.5px solid var(--ink); margin-top: -6.5px; }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 1.5px solid var(--ink); }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0 18px; }
+  .stat { border-top: 1px solid var(--line); padding-top: 10px; }
+  .stat .k { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .stat .v { font-family: var(--serif); font-style: italic; font-size: 30px; line-height: 1.1; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 16px; color: var(--muted); font-style: normal; font-family: var(--sans); margin-left: 2px; }
+
+  .pour {
+    width: 100%; height: 46px; border-radius: 999px; border: 0; cursor: none;
+    background: var(--ink); color: #fff; font: 500 13px var(--sans); letter-spacing: 0.02em;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: transform .15s ease, background .2s;
+  }
+  .pour:hover { background: #000; transform: translateY(-1px); }
+  .pour:active { transform: translateY(1px) scale(0.99); }
+  .pour .dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg,#ff5a5f,#ffd21f); }
+
+  footer {
+    position: absolute; left: clamp(24px, 4vw, 64px); bottom: clamp(18px, 3vw, 40px);
+    font-size: 12px; color: var(--muted); line-height: 1.6; max-width: 46ch;
+  }
+  footer kbd { font: inherit; color: var(--ink); }
+  .count { position: absolute; right: clamp(20px, 3.5vw, 56px); bottom: clamp(18px, 3vw, 40px); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  #cursor {
+    position: fixed; left: 0; top: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+    border: 1.5px solid rgba(20,20,20,0.85); border-radius: 50%;
+    pointer-events: none; z-index: 50;
+    transition: transform .22s cubic-bezier(.34,1.56,.64,1), background .22s, border-color .22s;
+    will-change: transform;
+    mix-blend-mode: multiply;
+  }
+  #cursor::after { content: ""; position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: rgba(20,20,20,0.9); }
+  body.hover #cursor { transform: scale(1.3); }
+  body.grabbing #cursor { transform: scale(1.9); background: rgba(20,20,20,0.06); border-color: rgba(20,20,20,1); }
+  body.hidecursor #cursor { opacity: 0; }
+
+  @media (max-width: 860px) {
+    header { max-width: 60vw; }
+    .card { width: 220px; padding: 16px; }
+    .stat .v { font-size: 24px; }
+    footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="ui">
+  <header>
+    <div class="eyebrow">Soft-body study · No. 07</div>
+    <h1><span class="line">Gummy</span><span class="line">Bears.</span></h1>
+    <p class="subtitle">Five flavors of translucent candy on a white table. <b>Grab</b> any part and pull. <b>Squash</b> a head. <b>Flick</b> to throw. They wobble back every time.</p>
+  </header>
+
+  <aside class="card">
+    <h2>Assorted bag</h2>
+    <div class="sku">Edition 2026 · 5 flavors</div>
+
+    <div class="label"><span>Flavors</span><span id="flavorHint">tap to drop one</span></div>
+    <div class="swatches" id="swatches"></div>
+
+    <div class="label"><span>Wobble</span><span id="wobbleVal">50</span></div>
+    <input id="wobble" type="range" min="0" max="100" value="50" />
+
+    <div class="stats">
+      <div class="stat"><div class="k">Stretch</div><div class="v"><span id="stretch">100</span><small>%</small></div></div>
+      <div class="stat"><div class="k">Bounces</div><div class="v"><span id="bounces">0</span></div></div>
+    </div>
+
+    <button class="pour" id="pour"><span class="dot"></span>Pour more bears</button>
+  </aside>
+
+  <footer>Drag a bear to stretch it, the rest leans after. Pull a head up and let go. Press a head into the table. Flick to throw them into each other.</footer>
+  <div class="count" id="count"></div>
+</div>
+<div id="cursor"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ---------------------------------------------------------------------------
+// Flavors
+// ---------------------------------------------------------------------------
+const FLAVORS = [
+  { name: 'Cherry',    color: '#ff3b4e', deep: '#b3001f', atten: 0.75 },
+  { name: 'Orange',    color: '#ff8a1f', deep: '#d65400', atten: 0.75 },
+  { name: 'Lemon',     color: '#ffd92e', deep: '#e0a800', atten: 0.85 },
+  { name: 'Apple',     color: '#73e04a', deep: '#2a9a1c', atten: 0.75 },
+  { name: 'Pineapple', color: '#fff6cf', deep: '#e6cc6e', atten: 1.6 },
+];
+
+// ---------------------------------------------------------------------------
+// Bear template: mass points + strands. Bear faces +Z.
+// ---------------------------------------------------------------------------
+const P = {
+  body: 0, belly: 1, head: 2, earL: 3, earR: 4, snout: 5, handL: 6, handR: 7, footL: 8, footR: 9,
+};
+const TEMPLATE = [
+  { p: [ 0.00, 0.36, -0.02], r: 0.34, m: 3.0 }, // body (sits on the table)
+  { p: [ 0.00, 0.33, 0.15], r: 0.25, m: 1.0 }, // belly
+  { p: [ 0.00, 0.92, 0.02], r: 0.29, m: 2.0 }, // head
+  { p: [-0.24, 1.18, -0.02], r: 0.105, m: 0.3 }, // ear L
+  { p: [ 0.24, 1.18, -0.02], r: 0.105, m: 0.3 }, // ear R
+  { p: [ 0.00, 0.84, 0.29], r: 0.13, m: 0.4 }, // snout
+  { p: [-0.40, 0.48, 0.14], r: 0.115, m: 0.4 }, // hand L
+  { p: [ 0.40, 0.48, 0.14], r: 0.115, m: 0.4 }, // hand R
+  { p: [-0.21, 0.13, 0.24], r: 0.13, m: 0.6 }, // foot L
+  { p: [ 0.21, 0.13, 0.24], r: 0.13, m: 0.6 }, // foot R
+];
+// [a, b, strand radius, number of interior balls]
+const STRANDS = [
+  [P.body, P.head,  0.20, 3],
+  [P.head, P.earL,  0.085, 2],
+  [P.head, P.earR,  0.085, 2],
+  [P.head, P.snout, 0.10, 2],
+  [P.body, P.handL, 0.10, 3],
+  [P.body, P.handR, 0.10, 3],
+  [P.body, P.footL, 0.125, 3],
+  [P.body, P.footR, 0.125, 3],
+];
+const CLUSTERS = [
+  { idx: [0,1,2,3,4,5,6,7,8,9], global: true },
+  { idx: [2,3,4,5] },        // head
+  { idx: [0,1,6,7,8,9] },    // body
+];
+const MAX_BALLS = 40;
+const MAX_BEARS = 18;
+const MC_RES = 26;
+const SURFACE_BUDGET_MS = 7; // per-frame CPU budget for implicit-surface rebuilds
+const MC_SUBTRACT = 45; // higher = tighter blobs, less long-range merging
+
+// rest centroid of the template (bears spawn with their feet on the table at y = REST_CM.y)
+const REST_CM = (() => {
+  const c = new THREE.Vector3(); let M = 0;
+  for (const t of TEMPLATE) { c.addScaledVector(new THREE.Vector3(...t.p), t.m); M += t.m; }
+  return c.multiplyScalar(1 / M);
+})();
+
+// ---------------------------------------------------------------------------
+// Renderer / scene
+// ---------------------------------------------------------------------------
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0xffffff, 1);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.9;
+pmrem.dispose();
+
+const camera = new THREE.PerspectiveCamera(32, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0.3, 3.2, 8.4);
+camera.lookAt(0.3, 1.2, 0);
+
+const keyLight = new THREE.DirectionalLight(0xfff1dc, 2.6);
+keyLight.position.set(3, 6, 4);
+scene.add(keyLight);
+const backLight = new THREE.DirectionalLight(0xdbe6ff, 1.4);
+backLight.position.set(-4, 3.5, -5);
+scene.add(backLight);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+fillLight.position.set(-3, 2, 5);
+scene.add(fillLight);
+
+// Table: pure editorial white, untouched by tone mapping.
+const table = new THREE.Mesh(
+  new THREE.PlaneGeometry(80, 80),
+  new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })
+);
+table.rotation.x = -Math.PI / 2;
+scene.add(table);
+
+// ---------------------------------------------------------------------------
+// Materials
+// ---------------------------------------------------------------------------
+const THICKNESS_GLSL = `
+  {
+    float wsum = 0.0; float tsum = 0.0;
+    for (int i = 0; i < ${MAX_BALLS}; i++) {
+      if (i >= uBallCount) break;
+      vec4 b = uBalls[i];
+      float d = max(length(vWorldPosition - b.xyz), 1e-4);
+      float w = pow(b.w / d, 6.0);
+      wsum += w; tsum += w * b.w;
+    }
+    float tr = tsum / max(wsum, 1e-6);
+    material.thickness = thickness * clamp(pow(tr / 0.30, 1.5), 0.08, 1.0);
+  }
+`;
+
+function makeGummyMaterial(flavor) {
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(flavor.color).lerp(new THREE.Color(0xffffff), 0.5),
+    roughness: 0.14,
+    metalness: 0.0,
+    transmission: 1.0,
+    ior: 1.45,
+    thickness: 0.9,
+    attenuationColor: new THREE.Color(flavor.deep),
+    attenuationDistance: flavor.atten,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.06,
+    specularIntensity: 1.0,
+    envMapIntensity: 1.0,
+    side: THREE.DoubleSide,
+  });
+  mat.userData.uniforms = {
+    uBalls: { value: Array.from({ length: MAX_BALLS }, () => new THREE.Vector4()) },
+    uBallCount: { value: 0 },
+  };
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uBalls = mat.userData.uniforms.uBalls;
+    shader.uniforms.uBallCount = mat.userData.uniforms.uBallCount;
+    shader.fragmentShader = `uniform vec4 uBalls[${MAX_BALLS}];\nuniform int uBallCount;\n` + shader.fragmentShader
+      .replace('material.thickness = thickness;', THICKNESS_GLSL);
+  };
+  mat.customProgramCacheKey = () => 'gummy';
+  return mat;
+}
+
+function makeEyeMaterial(flavor) {
+  const c = new THREE.Color(flavor.deep).multiplyScalar(0.35);
+  return new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.1 });
+}
+
+const shadowMaterialProto = new THREE.ShaderMaterial({
+  uniforms: { tint: { value: new THREE.Color() }, strength: { value: 0.6 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform vec3 tint; uniform float strength; varying vec2 vUv;
+    void main(){
+      vec2 d = (vUv - 0.5) * 2.0;
+      float r = length(d);
+      float a = smoothstep(1.0, 0.0, r);
+      a = a * a * (3.0 - 2.0 * a) * strength;
+      gl_FragColor = vec4(mix(vec3(1.0), tint, a), 1.0);
+    }`,
+  blending: THREE.MultiplyBlending,
+  depthWrite: false,
+  transparent: false,
+});
+const shadowGeo = new THREE.PlaneGeometry(1, 1);
+const eyeGeo = new THREE.SphereGeometry(1, 16, 12);
+
+// ---------------------------------------------------------------------------
+// Small math helpers (3x3 column-major, THREE.Matrix3 elements layout)
+// ---------------------------------------------------------------------------
+const _m4 = new THREE.Matrix4();
+const _R = new THREE.Matrix3();
+const _dq = new THREE.Quaternion();
+const _axis = new THREE.Vector3();
+const _c0 = new THREE.Vector3(), _c1 = new THREE.Vector3(), _c2 = new THREE.Vector3();
+const _a0 = new THREE.Vector3(), _a1 = new THREE.Vector3(), _a2 = new THREE.Vector3();
+const _om = new THREE.Vector3(), _tmp = new THREE.Vector3();
+
+// Müller et al. 2016, "A Robust Method to Extract the Rotational Part of Deformations"
+function extractRotation(A, q, iters) {
+  const a = A.elements;
+  _a0.set(a[0], a[1], a[2]); _a1.set(a[3], a[4], a[5]); _a2.set(a[6], a[7], a[8]);
+  for (let it = 0; it < iters; it++) {
+    _R.setFromMatrix4(_m4.makeRotationFromQuaternion(q));
+    const r = _R.elements;
+    _c0.set(r[0], r[1], r[2]); _c1.set(r[3], r[4], r[5]); _c2.set(r[6], r[7], r[8]);
+    _om.copy(_tmp.crossVectors(_c0, _a0));
+    _om.add(_tmp.crossVectors(_c1, _a1));
+    _om.add(_tmp.crossVectors(_c2, _a2));
+    const denom = Math.abs(_c0.dot(_a0) + _c1.dot(_a1) + _c2.dot(_a2)) + 1e-9;
+    _om.multiplyScalar(1 / denom);
+    const w = _om.length();
+    if (w < 1e-7) break;
+    _axis.copy(_om).multiplyScalar(1 / w);
+    _dq.setFromAxisAngle(_axis, w);
+    q.premultiply(_dq).normalize();
+  }
+  _R.setFromMatrix4(_m4.makeRotationFromQuaternion(q));
+  return _R;
+}
+
+const rand = (a, b) => a + Math.random() * (b - a);
+const IDENTITY_Q = new THREE.Quaternion();
+const RIGHTING = 0.03;
+const SAG = 0.35;
+const FLOOR_SINK = 0.85; // mass points may sink into the table to this fraction of their radius (flatter squash)
+
+// ---------------------------------------------------------------------------
+// Soft-body bear
+// ---------------------------------------------------------------------------
+let bearSeq = 0;
+class Bear {
+  constructor(flavor, position, quaternion) {
+    this.id = bearSeq++;
+    this.flavor = flavor;
+    this.n = TEMPLATE.length;
+    this.x = []; this.v = []; this.r = []; this.m = []; this.q0 = [];
+    this.goal = new Array(this.n).fill(0).map(() => new THREE.Vector3());
+
+    // rest shape relative to its centroid
+    let M = 0; const cm0 = new THREE.Vector3();
+    for (const t of TEMPLATE) { cm0.addScaledVector(new THREE.Vector3(...t.p), t.m); M += t.m; }
+    cm0.multiplyScalar(1 / M);
+    this.M = M;
+    for (let i = 0; i < this.n; i++) {
+      const t = TEMPLATE[i];
+      const q = new THREE.Vector3(...t.p).sub(cm0);
+      this.q0.push(q);
+      this.r.push(t.r); this.m.push(t.m);
+      const x = q.clone().applyQuaternion(quaternion).add(position);
+      this.x.push(x);
+      this.v.push(new THREE.Vector3());
+    }
+    this.restBottom = -cm0.y; // offset from centroid to lowest rest point (used for spawn height)
+
+    // clusters: precompute Aqq^-1 and rest centroids
+    this.clusters = CLUSTERS.map((c) => {
+      let cm = 0; const Mq = new THREE.Vector3();
+      for (const i of c.idx) { Mq.addScaledVector(this.q0[i], this.m[i]); cm += this.m[i]; }
+      Mq.multiplyScalar(1 / cm);
+      const qs = c.idx.map((i) => this.q0[i].clone().sub(Mq));
+      const Aqq = new THREE.Matrix3(); const e = Aqq.elements; e.fill(0);
+      c.idx.forEach((i, k) => {
+        const q = qs[k], m = this.m[i];
+        e[0] += m*q.x*q.x; e[1] += m*q.y*q.x; e[2] += m*q.z*q.x;
+        e[3] += m*q.x*q.y; e[4] += m*q.y*q.y; e[5] += m*q.z*q.y;
+        e[6] += m*q.x*q.z; e[7] += m*q.y*q.z; e[8] += m*q.z*q.z;
+      });
+      Aqq.invert();
+      return { idx: c.idx, qs, AqqInv: Aqq, M: cm, rot: quaternion.clone(), Apq: new THREE.Matrix3(), A: new THREE.Matrix3(), global: !!c.global };
+    });
+    this.rot = this.clusters[0].rot;      // whole-bear rotation
+    this.headRot = this.clusters[1].rot;  // head cluster rotation (eyes)
+
+    this.strandLen0 = STRANDS.map(([a, b]) => this.q0[a].distanceTo(this.q0[b]));
+    this.stretch = 1;
+    this.cm = new THREE.Vector3();
+    this.vcm = new THREE.Vector3();
+    this.grabbed = -1;
+    this.grabTarget = new THREE.Vector3();
+    this.grabVel = new THREE.Vector3();
+    this.groundTimer = 1;
+    this.hopTimer = rand(2.5, 7);
+    this.hopPhase = 0; this.hopT = 0;
+    this.landCooldown = 0;
+    this.stillTime = 0;
+    this.extent = 1;
+    this.alive = true;
+    this.needsSurface = true;
+    this.surfaceAge = 0;
+    this.maxV = 0;
+    this.prevX = this.x.map((p) => p.clone());
+    this.xOld = this.x.map((p) => p.clone());
+    this.push = this.x.map(() => new THREE.Vector3()); // collision corrections this substep
+    this.contact = new Uint8Array(this.n);
+    this.bounds = { cx: 0, cy: 0, cz: 0, minY: 0, w: 1, d: 1 };
+
+    // --- rendering
+    this.material = makeGummyMaterial(flavor);
+    this.mc = new MarchingCubes(MC_RES, this.material, false, false, 26000);
+    this.mc.isolation = 80;
+    this.mc.frustumCulled = false;
+    scene.add(this.mc);
+
+    const sm = shadowMaterialProto.clone();
+    sm.uniforms.tint.value = new THREE.Color(flavor.deep).lerp(new THREE.Color(flavor.color), 0.35);
+    this.shadow = new THREE.Mesh(shadowGeo, sm);
+    this.shadow.rotation.x = -Math.PI / 2;
+    this.shadow.position.y = 0.003 + this.id * 0.0002;
+    this.shadow.renderOrder = 1;
+    scene.add(this.shadow);
+
+    const em = makeEyeMaterial(flavor);
+    this.eyes = [0, 1, 2].map(() => { const e = new THREE.Mesh(eyeGeo, em); scene.add(e); return e; });
+    this.eyes[0].scale.setScalar(0.038); this.eyes[1].scale.setScalar(0.038); this.eyes[2].scale.setScalar(0.034);
+  }
+
+  dispose() {
+    scene.remove(this.mc); this.mc.geometry.dispose(); this.material.dispose();
+    scene.remove(this.shadow); this.shadow.material.dispose();
+    for (const e of this.eyes) scene.remove(e);
+    this.eyes[0].material.dispose();
+    this.alive = false;
+  }
+
+  computeCentroid() {
+    this.cm.set(0, 0, 0); this.vcm.set(0, 0, 0);
+    for (let i = 0; i < this.n; i++) { this.cm.addScaledVector(this.x[i], this.m[i]); this.vcm.addScaledVector(this.v[i], this.m[i]); }
+    this.cm.multiplyScalar(1 / this.M); this.vcm.multiplyScalar(1 / this.M);
+  }
+
+  // Shape matching with volume-preserving linear deformation (Müller 2005)
+  shapeMatch(cluster, alpha, beta, dt) {
+    const idx = cluster.idx, qs = cluster.qs;
+    const cm = _tmp.set(0, 0, 0);
+    for (let k = 0; k < idx.length; k++) cm.addScaledVector(this.x[idx[k]], this.m[idx[k]]);
+    cm.multiplyScalar(1 / cluster.M);
+    const cmx = cm.x, cmy = cm.y, cmz = cm.z;
+
+    const e = cluster.Apq.elements; e.fill(0);
+    for (let k = 0; k < idx.length; k++) {
+      const x = this.x[idx[k]], q = qs[k], m = this.m[idx[k]];
+      const px = x.x - cmx, py = x.y - cmy, pz = x.z - cmz;
+      e[0] += m*px*q.x; e[1] += m*py*q.x; e[2] += m*pz*q.x;
+      e[3] += m*px*q.y; e[4] += m*py*q.y; e[5] += m*pz*q.y;
+      e[6] += m*px*q.z; e[7] += m*py*q.z; e[8] += m*pz*q.z;
+    }
+    extractRotation(cluster.Apq, cluster.rot, 4);
+    // self-righting: bears standing on the table slowly roll back upright, like a weeble
+    if (cluster.global && this.groundTimer < 0.05) {
+      _tmp.set(0, 1, 0).applyQuaternion(cluster.rot);
+      if (_tmp.y < 0.999) {
+        _dq.setFromUnitVectors(_tmp, _axis.set(0, 1, 0));
+        // held against the table (pressing/dragging): stay fully upright so a pancake re-inflates straight up
+        if (this.grabbed < 0) _dq.slerp(IDENTITY_Q, 1 - RIGHTING);
+        cluster.rot.premultiply(_dq).normalize();
+      }
+    }
+    _R.setFromMatrix4(_m4.makeRotationFromQuaternion(cluster.rot));
+    const r = _R.elements;
+
+    let t = r;
+    if (beta > 0) {
+      const A = cluster.A.multiplyMatrices(cluster.Apq, cluster.AqqInv);
+      const det = A.determinant();
+      if (det > 1e-5) {
+        const s = 1 / Math.cbrt(det);
+        const a = A.elements;
+        for (let i = 0; i < 9; i++) a[i] = beta * a[i] * s + (1 - beta) * r[i];
+        t = a;
+      }
+    }
+    const k = alpha;
+    // while held, the rest shape hangs from the grabbed point and sags below it
+    let ox = 0, oy = 0, oz = 0, sag = 0, gy0 = 0;
+    if (cluster.global && this.grabbed >= 0) {
+      const gi = this.grabbed, q = qs[idx.indexOf(gi)], xg = this.x[gi];
+      ox = xg.x - (t[0]*q.x + t[3]*q.y + t[6]*q.z + cmx);
+      oy = xg.y - (t[1]*q.x + t[4]*q.y + t[7]*q.z + cmy);
+      oz = xg.z - (t[2]*q.x + t[5]*q.y + t[8]*q.z + cmz);
+      sag = SAG; gy0 = xg.y;
+    }
+    for (let j = 0; j < idx.length; j++) {
+      const i = idx[j], q = qs[j], x = this.x[i], v = this.v[i];
+      const gx = t[0]*q.x + t[3]*q.y + t[6]*q.z + cmx + ox;
+      let gy = t[1]*q.x + t[4]*q.y + t[7]*q.z + cmy + oy;
+      const gz = t[2]*q.x + t[5]*q.y + t[8]*q.z + cmz + oz;
+      if (sag && i !== this.grabbed) {
+        const below = gy0 - gy;
+        if (below > 0) gy -= below * sag;
+      }
+      // positional correction (position-based dynamics); velocity is derived afterwards
+      x.x += (gx - x.x) * k; x.y += (gy - x.y) * k; x.z += (gz - x.z) * k;
+    }
+  }
+
+  // Phase 1: apply forces, predict positions, solve shape matching / grab / floor on positions.
+  predict(dt, params) {
+    const { alpha, beta, kd } = params;
+    this.computeCentroid();
+
+    // internal damping (relative to centroid), air drag, gravity
+    for (let i = 0; i < this.n; i++) {
+      const v = this.v[i];
+      v.x = this.vcm.x + (v.x - this.vcm.x) * (1 - kd);
+      v.y = this.vcm.y + (v.y - this.vcm.y) * (1 - kd);
+      v.z = this.vcm.z + (v.z - this.vcm.z) * (1 - kd);
+      v.multiplyScalar(1 - 0.08 * dt);
+      v.y += GRAVITY * dt;
+    }
+
+    // idle hop: anticipation squash then launch
+    this.groundTimer += dt;
+    this.landCooldown -= dt;
+    if (this.grabbed < 0) this.hopTimer -= dt;
+    if (this.hopPhase === 0 && this.hopTimer <= 0 && this.groundTimer < 0.1 && this.grabbed < 0) {
+      this.hopPhase = 1; this.hopT = 0;
+    }
+    if (this.hopPhase === 1) {
+      this.hopT += dt;
+      for (let i = 0; i < this.n; i++) if (this.x[i].y > this.cm.y) this.v[i].y -= 28 * dt;
+      if (this.hopT > 0.14) {
+        this.hopPhase = 2; this.hopT = 0;
+        const up = rand(3.6, 5.2), ax = rand(-1, 1), az = rand(-0.6, 0.6);
+        for (let i = 0; i < this.n; i++) {
+          const v = this.v[i];
+          v.y += up + (this.x[i].y > this.cm.y ? 1.2 : 0);
+          v.x += ax; v.z += az;
+        }
+        this.hopTimer = rand(3, 9);
+        this.stillTime = 0;
+      }
+    } else if (this.hopPhase === 2) {
+      this.hopT += dt;
+      if (this.hopT > 0.3 && this.groundTimer < 0.05) this.hopPhase = 0;
+    }
+
+    // predict positions (keep the old ones to derive velocities later)
+    for (let i = 0; i < this.n; i++) {
+      this.xOld[i].copy(this.x[i]);
+      this.x[i].addScaledVector(this.v[i], dt);
+      this.push[i].set(0, 0, 0);
+    }
+
+    // shape matching on predicted positions: global cluster soft, sub-clusters stiffer
+    for (const c of this.clusters) {
+      if (c.global) this.shapeMatch(c, this.grabbed >= 0 ? alpha * 0.45 : alpha, beta, dt);
+      else this.shapeMatch(c, Math.min(0.85, alpha * 2.4), beta * 0.35, dt);
+    }
+
+    // grab constraint
+    if (this.grabbed >= 0) this.x[this.grabbed].lerp(this.grabTarget, 0.55);
+
+    this.solveBounds();
+  }
+
+  // Floor and soft walls as position constraints; contact flags are used in finalize()
+  solveBounds() {
+    for (let i = 0; i < this.n; i++) {
+      const x = this.x[i], r = this.r[i] * FLOOR_SINK;
+      let c = 0;
+      if (x.y <= r + 1e-6) { x.y = r; c = 1; this.groundTimer = 0; }
+      // the side limits follow the camera frustum: narrower near the viewer, wider at the back
+      const bx = BOUNDS.xNear + (BOUNDS.zMax - x.z) * BOUNDS.xSlope;
+      if (x.x > bx) { x.x = bx; c |= 2; }
+      if (x.x < -bx) { x.x = -bx; c |= 2; }
+      if (x.z > BOUNDS.zMax) { x.z = BOUNDS.zMax; c |= 4; }
+      if (x.z < BOUNDS.zMin) { x.z = BOUNDS.zMin; c |= 4; }
+      this.contact[i] = c;
+    }
+  }
+
+  // Phase 2 (after inter-bear collisions): velocities from position change, restitution, friction
+  finalize(dt) {
+    let landed = false, maxImpact = 0;
+    const inv = 1 / dt;
+    for (let i = 0; i < this.n; i++) {
+      const x = this.x[i], v = this.v[i], c = this.contact[i];
+      const vyPre = v.y;
+      v.subVectors(x, this.xOld[i]).multiplyScalar(inv);
+      // a deep overlap resolved in one substep must not become a violent kick: keep only part of it
+      v.addScaledVector(this.push[i], -0.65 * inv);
+      if (c & 1) {
+        if (vyPre < -0.6) { v.y = -vyPre * 0.28; landed = true; if (-vyPre > maxImpact) maxImpact = -vyPre; }
+        else if (v.y < 0.01) v.y = 0;
+        v.x *= 0.72; v.z *= 0.72; // sticky gummy friction
+      }
+      if (c & 2) v.x *= -0.4;
+      if (c & 4) v.z *= -0.4;
+    }
+    // whole-body ground friction: the common (centroid) horizontal motion is braked by the
+    // fraction of points touching the table; a slow bear comes to a dead stop (static friction)
+    let nc = 0;
+    for (let i = 0; i < this.n; i++) if (this.contact[i] & 1) nc++;
+    if (nc > 0 && this.grabbed < 0) {
+      let vx = 0, vz = 0;
+      for (let i = 0; i < this.n; i++) { vx += this.v[i].x * this.m[i]; vz += this.v[i].z * this.m[i]; }
+      vx /= this.M; vz /= this.M;
+      const fr = Math.hypot(vx, vz) < 0.12 ? 0 : 1 - 0.3 * nc / this.n;
+      for (let i = 0; i < this.n; i++) { const v = this.v[i]; v.x += vx * (fr - 1); v.z += vz * (fr - 1); }
+    }
+    if (this.grabbed >= 0) this.v[this.grabbed].copy(this.grabVel).multiplyScalar(0.9);
+    if (landed && maxImpact > 2.2 && this.landCooldown <= 0) {
+      this.landCooldown = 0.35;
+      stats.bounces++;
+    }
+  }
+
+  // Cheap per-frame work: bounds, stretch readout, sleep state, shadow, eyes
+  update() {
+    // bounds
+    let minX = 1e9, minY = 1e9, minZ = 1e9, maxX = -1e9, maxY = -1e9, maxZ = -1e9;
+    let maxV = 0;
+    for (let i = 0; i < this.n; i++) {
+      const x = this.x[i], r = this.r[i] * 1.15;
+      if (x.x - r < minX) minX = x.x - r; if (x.x + r > maxX) maxX = x.x + r;
+      if (x.y - r < minY) minY = x.y - r; if (x.y + r > maxY) maxY = x.y + r;
+      if (x.z - r < minZ) minZ = x.z - r; if (x.z + r > maxZ) maxZ = x.z + r;
+      // motion = actual displacement since last frame (velocities jitter in resting contact)
+      const s = x.distanceToSquared(this.prevX[i]) / (frameDt * frameDt); if (s > maxV) maxV = s;
+      this.prevX[i].copy(x);
+    }
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
+    const need = Math.max(maxX - minX, maxY - minY, maxZ - minZ) / 2 + 0.28;
+    this.extent = need > this.extent ? need : this.extent + (need - this.extent) * 0.15;
+    this.maxV = maxV;
+    this.bounds.cx = cx; this.bounds.cy = cy; this.bounds.cz = cz; this.bounds.minY = minY;
+
+    // stretch readout
+    let st = 1;
+    for (let s = 0; s < STRANDS.length; s++) {
+      const [a, b] = STRANDS[s];
+      const L = this.x[a].distanceTo(this.x[b]) / this.strandLen0[s];
+      if (L > st) st = L;
+    }
+    this.stretch = st;
+
+    // sleep: skip the expensive surface rebuild when the bear is at rest
+    const sleeping = this.grabbed < 0 && maxV < 0.0036 && this.stillTime > 0.6;
+    this.stillTime = maxV < 0.0036 ? this.stillTime + frameDt : 0;
+    this.needsSurface = !sleeping;
+    this.surfaceAge += frameDt;
+    this.bounds.w = (maxX - minX) * 0.95; this.bounds.d = (maxZ - minZ) * 0.95;
+  }
+
+  // Shadow and eyes are placed together with the surface so they never lag behind it
+  placeDecorations() {
+    const { cx, cz, minY, w: bw, d: bd } = this.bounds;
+    const bottom = Math.max(0, minY);
+    const w = bw + bottom * 0.5, d = bd + bottom * 0.5;
+    this.shadow.position.x = cx; this.shadow.position.z = cz;
+    this.shadow.scale.set(w, d, 1);
+    this.shadow.material.uniforms.strength.value = 0.78 * Math.max(0, 1 - bottom / 2.6);
+
+    // molded eyes + nose follow the head cluster's rotation
+    _m4.makeRotationFromQuaternion(this.headRot);
+    const h = this.x[P.head], sn = this.x[P.snout];
+    _tmp.set(-0.105, 0.05, 0.245).applyMatrix4(_m4).add(h); this.eyes[0].position.copy(_tmp);
+    _tmp.set( 0.105, 0.05, 0.245).applyMatrix4(_m4).add(h); this.eyes[1].position.copy(_tmp);
+    _tmp.set(0, 0.015, 0.115).applyMatrix4(_m4).add(sn); this.eyes[2].position.copy(_tmp);
+  }
+
+  // Expensive: rebuild the metaball field and run marching cubes
+  rebuildSurface() {
+    this.surfaceAge = 0;
+    this.placeDecorations();
+    const { cx, cy, cz } = this.bounds;
+    const ext = this.extent;
+    {
+      const mc = this.mc;
+      mc.position.set(cx, cy, cz);
+      mc.scale.setScalar(ext);
+      mc.reset();
+      const inv = 1 / (2 * ext);
+      const balls = this.material.userData.uniforms.uBalls.value;
+      let nb = 0;
+      const addBall = (px, py, pz, r) => {
+        const rn = r * inv;
+        mc.addBall((px - cx) * inv + 0.5, (py - cy) * inv + 0.5, (pz - cz) * inv + 0.5, rn * rn * (MC_SUBTRACT + mc.isolation), MC_SUBTRACT);
+        if (nb < MAX_BALLS) balls[nb++].set(px, py, pz, r);
+      };
+      for (let i = 0; i < this.n; i++) addBall(this.x[i].x, this.x[i].y, this.x[i].z, this.r[i]);
+      for (let s = 0; s < STRANDS.length; s++) {
+        const [a, b, r0, cnt] = STRANDS[s];
+        const A = this.x[a], B = this.x[b];
+        const L = A.distanceTo(B) / this.strandLen0[s];
+        // strands get thinner as they stretch (volume of a cylinder) and gain balls so they never bead
+        const r = L > 1 ? Math.max(0.035, r0 / Math.sqrt(L)) : r0 * Math.pow(1 / L, 0.15);
+        const n = Math.min(14, Math.max(cnt, Math.ceil(A.distanceTo(B) / (r * 0.9))));
+        for (let k = 1; k <= n; k++) {
+          const t = k / (n + 1);
+          addBall(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t, A.z + (B.z - A.z) * t, r);
+        }
+      }
+      this.material.userData.uniforms.uBallCount.value = nb;
+      mc.update();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// World
+// ---------------------------------------------------------------------------
+const GRAVITY = -14;
+const BOUNDS = { xNear: 2.9, xSlope: 0.45, zMin: -2.2, zMax: 1.6 };
+const bears = [];
+const stats = { bounces: 0, stretch: 1 };
+const perf = { cpu: 0 };
+let frameDt = 1 / 60;
+
+function addBear(flavor, position, quaternion) {
+  const b = new Bear(flavor, position, quaternion);
+  bears.push(b);
+  while (bears.length > MAX_BEARS) bears.shift().dispose();
+  return b;
+}
+
+function collideBears() {
+  const n = bears.length;
+  const d = _tmp;
+  for (let a = 0; a < n; a++) {
+    const A = bears[a];
+    for (let b = a + 1; b < n; b++) {
+      const B = bears[b];
+      if (A.cm.distanceToSquared(B.cm) > 3.2 * 3.2) continue;
+      for (let i = 0; i < A.n; i++) {
+        const xi = A.x[i], ri = A.r[i], mi = A.m[i];
+        for (let j = 0; j < B.n; j++) {
+          const xj = B.x[j], rj = B.r[j];
+          const rr = ri + rj;
+          d.subVectors(xj, xi);
+          const dist2 = d.lengthSq();
+          if (dist2 >= rr * rr || dist2 < 1e-10) continue;
+          const dist = Math.sqrt(dist2);
+          d.multiplyScalar(1 / dist);
+          const pen = rr - dist;
+          const mj = B.m[j];
+          const wi = mj / (mi + mj), wj = mi / (mi + mj);
+          // position-level separation; velocities are derived afterwards (inelastic, like candy)
+          xi.addScaledVector(d, -pen * wi);
+          xj.addScaledVector(d, pen * wj);
+          A.push[i].addScaledVector(d, -pen * wi);
+          B.push[j].addScaledVector(d, pen * wj);
+          A.stillTime = 0; B.stillTime = 0;
+        }
+      }
+    }
+  }
+}
+
+function spawnInitial() {
+  const spots = [
+    [-1.6, 0.35, -0.2], [-0.5, 0.55, 0.3], [0.6, 0.15, -0.3], [1.7, 0.45, 0.35], [2.8, 0.25, -0.15],
+  ];
+  const q = new THREE.Quaternion();
+  spots.forEach((s, i) => {
+    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), s[1] * (i % 2 ? -1 : 1));
+    addBear(FLAVORS[i % FLAVORS.length], new THREE.Vector3(s[0], REST_CM.y + 0.01, s[2]), q);
+  });
+}
+
+function pour(count = 5, flavor = null) {
+  const q = new THREE.Quaternion();
+  for (let i = 0; i < count; i++) {
+    q.setFromEuler(new THREE.Euler(rand(-Math.PI, Math.PI), rand(-Math.PI, Math.PI), rand(-Math.PI, Math.PI)));
+    const f = flavor || FLAVORS[Math.floor(Math.random() * FLAVORS.length)];
+    const b = addBear(f, new THREE.Vector3(rand(-1.3, 1.3) + 0.3, 4.2 + i * 1.1, rand(-0.6, 0.6)), q);
+    for (const v of b.v) v.set(rand(-0.6, 0.6), rand(-1, 0), rand(-0.6, 0.6));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Interaction
+// ---------------------------------------------------------------------------
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const grab = { bear: null, idx: -1, plane: new THREE.Plane(), offset: new THREE.Vector3(), last: new THREE.Vector3(), lastT: 0, vel: new THREE.Vector3() };
+const cursorEl = document.getElementById('cursor');
+const pointer = { x: window.innerWidth / 2, y: window.innerHeight / 2, down: false };
+const _hit = new THREE.Vector3();
+
+function setPointer(e) {
+  pointer.x = e.clientX; pointer.y = e.clientY;
+  ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  cursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+}
+
+function pickPoint() {
+  const o = raycaster.ray.origin, dir = raycaster.ray.direction;
+  let best = null, bestT = 1e9;
+  for (const b of bears) {
+    for (let i = 0; i < b.n; i++) {
+      const c = b.x[i], r = b.r[i] * 1.3;
+      _tmp.subVectors(c, o);
+      const tca = _tmp.dot(dir);
+      if (tca < 0) continue;
+      const d2 = _tmp.lengthSq() - tca * tca;
+      if (d2 > r * r) continue;
+      const t = tca - Math.sqrt(r * r - d2);
+      if (t < bestT) { bestT = t; best = { bear: b, idx: i, t }; }
+    }
+  }
+  return best;
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  setPointer(e);
+  const hit = pickPoint();
+  if (!hit) return;
+  canvas.setPointerCapture(e.pointerId);
+  const { bear, idx, t } = hit;
+  bear.grabbed = idx;
+  bear.hopPhase = 0;
+  bear.stillTime = 0;
+  grab.bear = bear; grab.idx = idx;
+  _hit.copy(raycaster.ray.origin).addScaledVector(raycaster.ray.direction, t);
+  // vertical drag plane: mouse up/down maps to world height, left/right to world x
+  const normal = camera.getWorldDirection(new THREE.Vector3()).negate();
+  normal.y = 0; normal.normalize();
+  grab.plane.setFromNormalAndCoplanarPoint(normal, _hit);
+  grab.offset.subVectors(bear.x[idx], _hit);
+  bear.grabTarget.copy(bear.x[idx]);
+  bear.grabVel.set(0, 0, 0);
+  grab.last.copy(bear.grabTarget); grab.lastT = performance.now(); grab.vel.set(0, 0, 0);
+  document.body.classList.add('grabbing');
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  setPointer(e);
+  if (grab.bear) {
+    if (raycaster.ray.intersectPlane(grab.plane, _hit)) {
+      const target = _hit.add(grab.offset);
+      // pressing into the table: the held point stops at the surface, the body pancakes under it
+      target.y = Math.max(target.y, grab.bear.r[grab.idx] * FLOOR_SINK);
+      const now = performance.now();
+      const dt = Math.max(1e-3, (now - grab.lastT) / 1000);
+      _tmp.subVectors(target, grab.last).multiplyScalar(1 / dt);
+      grab.vel.lerp(_tmp, 0.5);
+      grab.last.copy(target); grab.lastT = now;
+      grab.bear.grabTarget.copy(target);
+      grab.bear.grabVel.copy(grab.vel);
+    }
+  } else {
+    document.body.classList.toggle('hover', !!pickPoint());
+  }
+});
+
+function release() {
+  if (!grab.bear) return;
+  const b = grab.bear;
+  const age = (performance.now() - grab.lastT) / 1000;
+  const vel = grab.vel.clone().multiplyScalar(age > 0.08 ? 0 : 1);
+  vel.clampLength(0, 16);
+  for (let i = 0; i < b.n; i++) b.v[i].lerp(vel, 0.7);
+  b.v[b.grabbed].copy(vel);
+  b.grabbed = -1;
+  b.hopTimer = Math.max(b.hopTimer, 1.5);
+  grab.bear = null;
+  document.body.classList.remove('grabbing');
+}
+canvas.addEventListener('pointerup', release);
+canvas.addEventListener('pointercancel', release);
+window.addEventListener('blur', release);
+window.addEventListener('pointermove', (e) => { if (e.target !== canvas) setPointer(e); });
+document.addEventListener('mouseleave', () => document.body.classList.add('hidecursor'));
+document.addEventListener('mouseenter', () => document.body.classList.remove('hidecursor'));
+
+// decay grab velocity when the pointer stops moving while held
+setInterval(() => { if (grab.bear) { grab.vel.multiplyScalar(0.6); grab.bear.grabVel.copy(grab.vel); } }, 50);
+
+// ---------------------------------------------------------------------------
+// UI
+// ---------------------------------------------------------------------------
+const swatchesEl = document.getElementById('swatches');
+FLAVORS.forEach((f) => {
+  const b = document.createElement('button');
+  b.className = 'swatch'; b.style.setProperty('--c', f.color); b.dataset.name = f.name; b.title = f.name;
+  b.addEventListener('click', () => pour(1, f));
+  swatchesEl.appendChild(b);
+});
+const wobbleEl = document.getElementById('wobble');
+const wobbleVal = document.getElementById('wobbleVal');
+const params = { alpha: 0.1, beta: 0.5, kd: 0.05 };
+function applyWobble() {
+  const s = wobbleEl.value / 100;
+  wobbleVal.textContent = wobbleEl.value;
+  params.alpha = THREE.MathUtils.lerp(0.26, 0.075, s);
+  params.beta = THREE.MathUtils.lerp(0.3, 0.6, s);
+  params.kd = THREE.MathUtils.lerp(0.10, 0.025, s);
+}
+wobbleEl.addEventListener('input', applyWobble);
+applyWobble();
+document.getElementById('pour').addEventListener('click', () => pour(5));
+const stretchEl = document.getElementById('stretch');
+const bouncesEl = document.getElementById('bounces');
+const countEl = document.getElementById('count');
+
+function fitCamera() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  // widen the view on narrow windows so the row of bears stays clear of the title and the card
+  camera.fov = THREE.MathUtils.clamp(32 * (1.55 / camera.aspect), 32, 52);
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+window.addEventListener('resize', fitCamera);
+fitCamera();
+
+// ---------------------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------------------
+spawnInitial();
+const FIXED = 1 / 120;
+let acc = 0, last = performance.now(), shownStretch = 1;
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  frameDt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  acc += frameDt;
+  const t0 = performance.now();
+  let steps = 0;
+  while (acc >= FIXED && steps < 5) {
+    for (const b of bears) b.predict(FIXED, params);
+    collideBears();
+    for (const b of bears) { b.solveBounds(); b.finalize(FIXED); }
+    acc -= FIXED; steps++;
+  }
+  if (steps === 5) acc = 0;
+
+  let maxStretch = 1;
+  for (const b of bears) { b.update(); if (b.stretch > maxStretch) maxStretch = b.stretch; }
+
+  // Surface rebuilds within a time budget: the held bear first, then the most stale ones.
+  // With many bears awake (a pour), rebuilds interleave across frames instead of dropping fps.
+  const queue = bears.filter((b) => b.needsSurface);
+  queue.sort((a, b) => (b.grabbed >= 0) - (a.grabbed >= 0) || b.surfaceAge - a.surfaceAge);
+  const tSurf = performance.now();
+  for (let i = 0; i < queue.length; i++) {
+    if (i >= 3 && performance.now() - tSurf > SURFACE_BUDGET_MS) break;
+    queue[i].rebuildSurface();
+  }
+  shownStretch += (maxStretch - shownStretch) * 0.25;
+  stretchEl.textContent = Math.round(shownStretch * 100);
+  bouncesEl.textContent = stats.bounces;
+  countEl.textContent = `${bears.length} bears on the table`;
+  perf.cpu += (performance.now() - t0 - perf.cpu) * 0.05;
+
+  renderer.render(scene, camera);
+  if (window.__trace) window.__trace(now);
+}
+requestAnimationFrame(frame);
+
+window.__gummy = { bears, pour, stats, params, perf, renderer, scene, camera };
+</script>
+</body>
+</html>

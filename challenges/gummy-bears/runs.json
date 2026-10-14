@@ -112,6 +112,22 @@
     "cost_usd": 4.78
   },
   {
+    "slug": "fable-5.1",
+    "model": "Fable 5.1",
+    "provider": "Anthropic",
+    "harness": "Claude Code 2.1.300",
+    "effort": "medium",
+    "duration": "45m 29s",
+    "tokens_in": 178637,
+    "tokens_out": 107384,
+    "cost_usd": 10.75,
+    "turns": 67,
+    "nudges": 0,
+    "entry": "index.html",
+    "status": "done",
+    "notes": "60fps not verified on a real GPU; bear-to-bear collisions are point-sphere based, so thin limbs can slightly overlap; thickness-based absorption is approximated from metaball radii; pouring caps the scene at 18 bears."
+  },
+  {
     "slug": "mimo-v2-6-flash",
     "model": "MiMo v2.6 Flash",
     "provider": "OpenCode Go",
